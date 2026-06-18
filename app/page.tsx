@@ -85,7 +85,7 @@ export default function ProjectBoard() {
       }
 
       if (error) {
-        setNotice("Supabase is configured, but cards could not be loaded.");
+        setNotice(`Supabase is configured, but cards could not be loaded: ${error.message}`);
       } else if (data && data.length > 0) {
         setCards(data as BoardCard[]);
       }
@@ -143,7 +143,7 @@ export default function ProjectBoard() {
     const { error } = await supabase.from(cardsTable).upsert(rows, { onConflict: "id" });
 
     if (error) {
-      setNotice("Changes are visible locally, but Supabase could not save them.");
+      setNotice(`Changes are visible locally, but Supabase could not save them: ${error.message}`);
     }
   }
 
@@ -205,7 +205,7 @@ export default function ProjectBoard() {
     if (supabase) {
       const { error } = await supabase.from(cardsTable).delete().eq("id", cardId);
       if (error) {
-        setNotice("The card was removed locally, but Supabase could not delete it.");
+        setNotice(`The card was removed locally, but Supabase could not delete it: ${error.message}`);
       }
     }
   }

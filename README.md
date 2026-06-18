@@ -34,6 +34,8 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 
 The demo migration uses public read/write policies for easy prototyping. For production, add authentication and restrict row access to the owning user or workspace.
 
+If cards do not persist and Supabase returns a permission error, also run `supabase/migrations/20260617183500_grant_project_cards_access.sql`.
+
 ## Vercel Setup
 
 1. Import `max-scryptic/DemoRepository` in Vercel.
