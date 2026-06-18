@@ -2,7 +2,14 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Check, CirclePlus, GripVertical, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { cardsTable, isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 import type { BoardCard, CardDraft, Status } from "@/types/board";
 
 const columns: Array<{ id: Status; title: string; accent: string }> = [
@@ -236,94 +243,74 @@ export default function ProjectBoard() {
         </header>
 
         <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-          <aside className="h-fit rounded-lg border border-slate-200 bg-white p-4 shadow-panel">
-            <div className="mb-4 flex items-center gap-2">
-              <CirclePlus className="h-5 w-5 text-teal-700" />
-              <h2 className="text-base font-semibold text-slate-950">New card</h2>
-            </div>
+          <Card className="h-fit">
+            <aside>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CirclePlus className="h-5 w-5 text-teal-700" />
+                  New card
+                </CardTitle>
+              </CardHeader>
 
-            <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
-              <label className="text-sm font-medium text-slate-700" htmlFor="card-title">
-                Title
-              </label>
-              <input
-                id="card-title"
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
-                value={draft.title}
-                onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-                placeholder="Design pricing page"
-              />
+              <CardContent>
+                <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
+                  <Label htmlFor="card-title">Title</Label>
+                  <Input
+                    id="card-title"
+                    value={draft.title}
+                    onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                    placeholder="Design pricing page"
+                  />
 
-              <label className="text-sm font-medium text-slate-700" htmlFor="card-description">
-                Description
-              </label>
-              <textarea
-                id="card-description"
-                className="min-h-24 resize-y rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
-                value={draft.description}
-                onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-                placeholder="Add context, acceptance criteria, or next steps"
-              />
+                  <Label htmlFor="card-description">Description</Label>
+                  <Textarea
+                    id="card-description"
+                    className="resize-y"
+                    value={draft.description}
+                    onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+                    placeholder="Add context, acceptance criteria, or next steps"
+                  />
 
-              <label className="text-sm font-medium text-slate-700" htmlFor="card-labels">
-                Labels
-              </label>
-              <input
-                id="card-labels"
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
-                value={draft.labels}
-                onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
-                placeholder="Design, Launch"
-              />
+                  <Label htmlFor="card-labels">Labels</Label>
+                  <Input
+                    id="card-labels"
+                    value={draft.labels}
+                    onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
+                    placeholder="Design, Launch"
+                  />
 
-              <label className="text-sm font-medium text-slate-700" htmlFor="card-status">
-                Status
-              </label>
-              <select
-                id="card-status"
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-teal-600 focus:ring-2 focus:ring-teal-100"
-                value={draftStatus}
-                onChange={(event) => setDraftStatus(event.target.value as Status)}
-              >
-                {columns.map((column) => (
-                  <option key={column.id} value={column.id}>
-                    {column.title}
-                  </option>
-                ))}
-              </select>
+                  <StatusPicker value={draftStatus} onChange={setDraftStatus} />
 
-              <button
-                className="mt-1 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={saving}
-                type="submit"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Add card
-              </button>
-            </form>
+                  <Button className="mt-1 min-h-11" disabled={saving} type="submit">
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    Add card
+                  </Button>
+                </form>
 
-            <div className="mt-5 border-t border-slate-200 pt-4">
-              <label className="mb-2 block text-sm font-medium text-slate-700" htmlFor="search">
-                Search board
-              </label>
-              <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2">
-                <Search className="h-4 w-4 text-slate-500" />
-                <input
-                  id="search"
-                  className="w-full border-0 bg-transparent text-sm outline-none"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Title, label, or description"
-                />
-              </div>
-            </div>
+                <div className="mt-5 border-t border-slate-200 pt-4">
+                  <Label className="mb-2 block" htmlFor="search">
+                    Search board
+                  </Label>
+                  <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
+                    <Search className="h-4 w-4 text-slate-500" />
+                    <input
+                      id="search"
+                      className="w-full border-0 bg-transparent text-sm outline-none"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Title, label, or description"
+                    />
+                  </div>
+                </div>
 
-            {notice && (
-              <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                {notice}
-              </p>
-            )}
-          </aside>
+                {notice && (
+                  <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    {notice}
+                  </p>
+                )}
+              </CardContent>
+            </aside>
+          </Card>
 
           <section className="overflow-x-auto pb-3">
             <div className="grid min-w-[1120px] grid-cols-5 gap-3">
@@ -352,9 +339,9 @@ export default function ProjectBoard() {
                         {column.title}
                       </h2>
                     </div>
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                    <Badge variant="secondary">
                       {groupedCards[column.id].length}
-                    </span>
+                    </Badge>
                   </div>
 
                   <div className="flex min-h-[560px] flex-col gap-3 rounded-md bg-slate-50 p-2">
@@ -400,15 +387,17 @@ export default function ProjectBoard() {
                                 {card.title}
                               </h3>
                             </div>
-                            <button
+                            <Button
                               aria-label={`Delete ${card.title}`}
-                              className="rounded-md p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                              className="text-slate-400 hover:bg-rose-50 hover:text-rose-600"
                               onClick={() => deleteCard(card.id)}
                               onPointerDown={(event) => event.stopPropagation()}
+                              size="icon"
                               type="button"
+                              variant="ghost"
                             >
                               <Trash2 className="h-4 w-4" />
-                            </button>
+                            </Button>
                           </div>
 
                           {card.description && (
@@ -417,20 +406,21 @@ export default function ProjectBoard() {
 
                           <div className="flex flex-wrap gap-1.5">
                             {card.labels.map((label) => (
-                              <span
+                              <Badge
                                 key={label}
-                                className="rounded-full bg-teal-50 px-2 py-1 text-xs font-medium text-teal-800"
+                                className="font-medium"
+                                variant="teal"
                               >
                                 {label}
-                              </span>
+                              </Badge>
                             ))}
                           </div>
 
                           {card.status === "done" && (
-                            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700">
+                            <Badge className="mt-3 gap-1.5" variant="success">
                               <Check className="h-3.5 w-3.5" />
                               Complete
-                            </div>
+                            </Badge>
                           )}
                         </article>
                       ))
@@ -448,9 +438,52 @@ export default function ProjectBoard() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+    <Card className="px-4 py-3 shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
       <p className="mt-1 text-xl font-semibold text-slate-950">{value}</p>
+    </Card>
+  );
+}
+
+function StatusPicker({
+  value,
+  onChange
+}: {
+  value: Status;
+  onChange: (status: Status) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label id="card-status-label">Status</Label>
+      <div
+        aria-labelledby="card-status-label"
+        className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1.5"
+        role="radiogroup"
+      >
+        {columns.map((column) => {
+          const selected = value === column.id;
+
+          return (
+            <button
+              aria-checked={selected}
+              className={cn(
+                "flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-left text-sm font-medium transition",
+                selected
+                  ? "border-slate-300 bg-white text-slate-950 shadow-sm"
+                  : "border-transparent text-slate-600 hover:bg-white/70 hover:text-slate-950"
+              )}
+              key={column.id}
+              onClick={() => onChange(column.id)}
+              role="radio"
+              type="button"
+            >
+              <span className={cn("h-2.5 w-2.5 rounded-full", column.accent)} />
+              <span className="truncate">{column.title}</span>
+              {selected && <Check className="ml-auto h-4 w-4 text-teal-700" />}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
