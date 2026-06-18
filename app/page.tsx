@@ -15,7 +15,7 @@ const columns: Array<{ id: Status; title: string; accent: string }> = [
 
 const starterCards: BoardCard[] = [
   {
-    id: "starter-1",
+    id: "11111111-1111-4111-8111-111111111111",
     title: "Draft onboarding flow",
     description: "Map the first-use path and define what a new teammate should see first.",
     status: "backlog",
@@ -23,7 +23,7 @@ const starterCards: BoardCard[] = [
     labels: ["Product", "Research"]
   },
   {
-    id: "starter-2",
+    id: "22222222-2222-4222-8222-222222222222",
     title: "Create launch checklist",
     description: "Collect the final QA, copy, analytics, and handoff tasks in one place.",
     status: "todo",
@@ -31,7 +31,7 @@ const starterCards: BoardCard[] = [
     labels: ["Ops"]
   },
   {
-    id: "starter-3",
+    id: "33333333-3333-4333-8333-333333333333",
     title: "Build project board",
     description: "Support cards, statuses, drag-and-drop movement, and persistence.",
     status: "in_progress",
@@ -39,7 +39,7 @@ const starterCards: BoardCard[] = [
     labels: ["Engineering"]
   },
   {
-    id: "starter-4",
+    id: "44444444-4444-4444-8444-444444444444",
     title: "Review Supabase schema",
     description: "Confirm table policies, indexes, and environment variables before deploy.",
     status: "review",
