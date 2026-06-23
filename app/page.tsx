@@ -8,9 +8,11 @@ import {
   GripVertical,
   LayoutDashboard,
   Loader2,
+  Moon,
   Plus,
   Search,
   Settings,
+  Sun,
   Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -73,7 +75,16 @@ const emptyDraft: CardDraft = {
   labels: ""
 };
 
+type Theme = "light" | "dark";
+
 export default function ProjectBoard() {
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof document === "undefined") {
+      return "dark";
+    }
+
+    return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  });
   const [cards, setCards] = useState<BoardCard[]>(starterCards);
   const [draft, setDraft] = useState<CardDraft>(emptyDraft);
   const [draftStatus, setDraftStatus] = useState<Status>("todo");
@@ -84,6 +95,11 @@ export default function ProjectBoard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    window.localStorage.setItem("project-board-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     let ignore = false;
@@ -343,6 +359,16 @@ export default function ProjectBoard() {
                     </form>
                   </DialogContent>
                 </Dialog>
+
+                <Button
+                  aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  size="icon"
+                  type="button"
+                  variant="outline"
+                >
+                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
