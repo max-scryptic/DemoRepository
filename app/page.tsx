@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { cardsTable, isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { cardsTable, supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import type { BoardCard, CardDraft, Status } from "@/types/board";
 
@@ -228,7 +228,7 @@ export default function ProjectBoard() {
       onPointerUp={() => setPointerDraggedId(null)}
     >
       <section className="mx-auto flex max-w-[1520px] flex-col gap-5">
-        <header className="grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(440px,1fr)] lg:items-end">
+        <header className="grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
               Project management
@@ -239,11 +239,8 @@ export default function ProjectBoard() {
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex min-h-[70px] flex-col gap-3 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
-                <Label className="mb-2 block" htmlFor="search">
-                  Search board
-                </Label>
                 <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
                   <Search className="h-4 w-4 text-slate-500" />
                   <input
@@ -309,10 +306,9 @@ export default function ProjectBoard() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <Metric label="Cards" value={cards.length.toString()} />
             <Metric label="Done" value={totalDone.toString()} />
-            <Metric label="Storage" value={isSupabaseConfigured ? "Supabase" : "Local"} />
           </div>
         </header>
 
