@@ -4,7 +4,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Check, CirclePlus, GripVertical, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,6 +66,7 @@ export default function ProjectBoard() {
   const [cards, setCards] = useState<BoardCard[]>(starterCards);
   const [draft, setDraft] = useState<CardDraft>(emptyDraft);
   const [draftStatus, setDraftStatus] = useState<Status>("todo");
+  const [isNewCardOpen, setIsNewCardOpen] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [pointerDraggedId, setPointerDraggedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -182,6 +184,7 @@ export default function ProjectBoard() {
     setDraft(emptyDraft);
     await persistCards(nextCards);
     setSaving(false);
+    setIsNewCardOpen(false);
   }
 
   async function moveCard(cardId: string, nextStatus: Status) {
@@ -242,17 +245,39 @@ export default function ProjectBoard() {
           </div>
         </header>
 
-        <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
-          <Card className="h-fit">
-            <aside>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CirclePlus className="h-5 w-5 text-teal-700" />
-                  New card
-                </CardTitle>
-              </CardHeader>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-end sm:justify-between">
+            <div className="w-full sm:max-w-md">
+              <Label className="mb-2 block" htmlFor="search">
+                Search board
+              </Label>
+              <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
+                <Search className="h-4 w-4 text-slate-500" />
+                <input
+                  id="search"
+                  className="w-full border-0 bg-transparent text-sm outline-none"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Title, label, or description"
+                />
+              </div>
+            </div>
 
-              <CardContent>
+            <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
+              <DialogTrigger asChild>
+                <Button className="min-h-11 sm:min-w-36" type="button">
+                  <Plus className="h-4 w-4" />
+                  New card
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <CirclePlus className="h-5 w-5 text-teal-700" />
+                    New card
+                  </DialogTitle>
+                </DialogHeader>
+
                 <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
                   <Label htmlFor="card-title">Title</Label>
                   <Input
@@ -286,34 +311,18 @@ export default function ProjectBoard() {
                     Add card
                   </Button>
                 </form>
+              </DialogContent>
+            </Dialog>
+          </div>
 
-                <div className="mt-5 border-t border-slate-200 pt-4">
-                  <Label className="mb-2 block" htmlFor="search">
-                    Search board
-                  </Label>
-                  <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
-                    <Search className="h-4 w-4 text-slate-500" />
-                    <input
-                      id="search"
-                      className="w-full border-0 bg-transparent text-sm outline-none"
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                      placeholder="Title, label, or description"
-                    />
-                  </div>
-                </div>
-
-                {notice && (
-                  <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                    {notice}
-                  </p>
-                )}
-              </CardContent>
-            </aside>
-          </Card>
+          {notice && (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              {notice}
+            </p>
+          )}
 
           <section className="overflow-x-auto pb-3">
-            <div className="grid min-w-[1120px] grid-cols-5 gap-3">
+            <div className="grid min-w-[1180px] grid-cols-5 gap-3 xl:min-w-0">
               {columns.map((column) => (
                 <div
                   key={column.id}
