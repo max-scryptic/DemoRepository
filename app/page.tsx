@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Check, CirclePlus, GripVertical, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { Check, CirclePlus, GripVertical, Loader2, Moon, Plus, Search, Sun, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -62,7 +62,16 @@ const emptyDraft: CardDraft = {
   labels: ""
 };
 
+type Theme = "light" | "dark";
+
 export default function ProjectBoard() {
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof document === "undefined") {
+      return "dark";
+    }
+
+    return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  });
   const [cards, setCards] = useState<BoardCard[]>(starterCards);
   const [draft, setDraft] = useState<CardDraft>(emptyDraft);
   const [draftStatus, setDraftStatus] = useState<Status>("todo");
@@ -73,6 +82,11 @@ export default function ProjectBoard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    window.localStorage.setItem("project-board-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     let ignore = false;
@@ -224,28 +238,28 @@ export default function ProjectBoard() {
 
   return (
     <main
-      className="min-h-screen px-4 py-5 text-ink sm:px-6 lg:px-8"
+      className="min-h-screen px-4 py-5 text-ink transition-colors dark:text-slate-100 sm:px-6 lg:px-8"
       onPointerUp={() => setPointerDraggedId(null)}
     >
       <section className="mx-auto flex max-w-[1520px] flex-col gap-5">
-        <header className="grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
+        <header className="grid gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
               Project management
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
+            <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50 sm:text-4xl">
               Project Board
             </h1>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
             <div className="flex min-h-[70px] flex-col gap-3 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
-                  <Search className="h-4 w-4 text-slate-500" />
+                <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500 dark:border-slate-700 dark:bg-slate-950">
+                  <Search className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                   <input
                     id="search"
-                    className="w-full border-0 bg-transparent text-sm outline-none"
+                    className="w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-slate-50 dark:placeholder:text-slate-500"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     placeholder="Title, label, or description"
@@ -263,7 +277,7 @@ export default function ProjectBoard() {
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                      <CirclePlus className="h-5 w-5 text-teal-700" />
+                      <CirclePlus className="h-5 w-5 text-teal-700 dark:text-teal-300" />
                       New card
                     </DialogTitle>
                   </DialogHeader>
@@ -303,6 +317,17 @@ export default function ProjectBoard() {
                   </form>
                 </DialogContent>
               </Dialog>
+              <Button
+                aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+                aria-pressed={theme === "dark"}
+                className="min-h-11 sm:w-28"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                type="button"
+                variant="secondary"
+              >
+                {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                {theme === "dark" ? "Dark" : "Light"}
+              </Button>
             </div>
           </div>
 
@@ -314,7 +339,7 @@ export default function ProjectBoard() {
 
         <div className="flex flex-col gap-4">
           {notice && (
-            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
               {notice}
             </p>
           )}
@@ -324,9 +349,10 @@ export default function ProjectBoard() {
               {columns.map((column) => (
                 <div
                   key={column.id}
-                  className={`min-w-0 rounded-lg border border-slate-200 bg-white/88 p-3 shadow-panel transition ${
-                    pointerDraggedId || draggedId ? "ring-2 ring-teal-100" : ""
-                  }`}
+                  className={cn(
+                    "min-w-0 rounded-lg border border-slate-200 bg-white/88 p-3 shadow-panel transition dark:border-slate-700 dark:bg-slate-900/82",
+                    pointerDraggedId || draggedId ? "ring-2 ring-teal-100 dark:ring-teal-400/25" : ""
+                  )}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => {
                     event.preventDefault();
@@ -342,7 +368,7 @@ export default function ProjectBoard() {
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full ${column.accent}`} />
-                      <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700">
+                      <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
                         {column.title}
                       </h2>
                     </div>
@@ -351,14 +377,14 @@ export default function ProjectBoard() {
                     </Badge>
                   </div>
 
-                  <div className="flex min-h-[560px] flex-col gap-3 rounded-md bg-slate-50 p-2">
+                  <div className="flex min-h-[560px] flex-col gap-3 rounded-md bg-slate-50 p-2 dark:bg-slate-950/70">
                     {loading ? (
-                      <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 py-6 text-sm text-slate-500">
+                      <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Loading
                       </div>
                     ) : groupedCards[column.id].length === 0 ? (
-                      <div className="rounded-md border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500">
+                      <div className="rounded-md border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                         Drop cards here
                       </div>
                     ) : (
@@ -381,7 +407,7 @@ export default function ProjectBoard() {
 
                             setPointerDraggedId(card.id);
                           }}
-                          className={`rounded-md border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md ${
+                          className={`rounded-md border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 ${
                             pointerDraggedId === card.id || draggedId === card.id
                               ? "cursor-grabbing opacity-75"
                               : "cursor-grab"
@@ -389,14 +415,14 @@ export default function ProjectBoard() {
                         >
                           <div className="mb-2 flex items-start justify-between gap-2">
                             <div className="flex items-start gap-2">
-                              <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                              <h3 className="text-sm font-semibold leading-5 text-slate-950">
+                              <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
+                              <h3 className="text-sm font-semibold leading-5 text-slate-950 dark:text-slate-50">
                                 {card.title}
                               </h3>
                             </div>
                             <Button
                               aria-label={`Delete ${card.title}`}
-                              className="text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                              className="text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-500 dark:hover:bg-rose-500/10 dark:hover:text-rose-300"
                               onClick={() => deleteCard(card.id)}
                               onPointerDown={(event) => event.stopPropagation()}
                               size="icon"
@@ -408,7 +434,7 @@ export default function ProjectBoard() {
                           </div>
 
                           {card.description && (
-                            <p className="mb-3 text-sm leading-5 text-slate-600">{card.description}</p>
+                            <p className="mb-3 text-sm leading-5 text-slate-600 dark:text-slate-400">{card.description}</p>
                           )}
 
                           <div className="flex flex-wrap gap-1.5">
@@ -446,8 +472,8 @@ export default function ProjectBoard() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <Card className="px-4 py-3 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-slate-950">{value}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-slate-950 dark:text-slate-50">{value}</p>
     </Card>
   );
 }
@@ -464,7 +490,7 @@ function StatusPicker({
       <Label id="card-status-label">Status</Label>
       <div
         aria-labelledby="card-status-label"
-        className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1.5"
+        className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-700 dark:bg-slate-950"
         role="radiogroup"
       >
         {columns.map((column) => {
@@ -476,8 +502,8 @@ function StatusPicker({
               className={cn(
                 "flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-left text-sm font-medium transition",
                 selected
-                  ? "border-slate-300 bg-white text-slate-950 shadow-sm"
-                  : "border-transparent text-slate-600 hover:bg-white/70 hover:text-slate-950"
+                  ? "border-slate-300 bg-white text-slate-950 shadow-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50"
+                  : "border-transparent text-slate-600 hover:bg-white/70 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-800/70 dark:hover:text-slate-50"
               )}
               key={column.id}
               onClick={() => onChange(column.id)}
@@ -486,7 +512,7 @@ function StatusPicker({
             >
               <span className={cn("h-2.5 w-2.5 rounded-full", column.accent)} />
               <span className="truncate">{column.title}</span>
-              {selected && <Check className="ml-auto h-4 w-4 text-teal-700" />}
+              {selected && <Check className="ml-auto h-4 w-4 text-teal-700 dark:text-teal-300" />}
             </button>
           );
         })}
