@@ -4,14 +4,15 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:pointer-events-none disabled:opacity-50 dark:focus-visible:ring-slate-600 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-slate-950 text-white shadow-sm hover:bg-slate-800 dark:bg-teal-400 dark:text-slate-950 dark:hover:bg-teal-300",
-        secondary: "bg-slate-100 text-slate-950 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700",
-        ghost: "hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-slate-50",
-        destructive: "bg-rose-600 text-white shadow-sm hover:bg-rose-700"
+        default: "bg-primary text-primary-foreground shadow-sm hover:bg-teal-800",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-slate-200",
+        outline: "border border-border bg-card text-foreground shadow-sm hover:bg-muted",
+        ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
+        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-rose-700"
       },
       size: {
         default: "h-10 px-4 py-2",
