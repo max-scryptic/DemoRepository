@@ -13,12 +13,12 @@ import { cardsTable, supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import type { BoardCard, CardDraft, Status } from "@/types/board";
 
-const columns: Array<{ id: Status; title: string; accent: string }> = [
-  { id: "backlog", title: "Backlog", accent: "bg-slate-500" },
-  { id: "todo", title: "To do", accent: "bg-sky-500" },
-  { id: "in_progress", title: "In progress", accent: "bg-amber-500" },
-  { id: "review", title: "Review", accent: "bg-violet-500" },
-  { id: "done", title: "Done", accent: "bg-emerald-500" }
+const columns: Array<{ id: Status; title: string; color: string }> = [
+  { id: "backlog", title: "Backlog", color: "#64748b" },
+  { id: "todo", title: "To do", color: "#0284c7" },
+  { id: "in_progress", title: "In progress", color: "#d97706" },
+  { id: "review", title: "Review", color: "#7c3aed" },
+  { id: "done", title: "Done", color: "#059669" }
 ];
 
 const starterCards: BoardCard[] = [
@@ -244,91 +244,78 @@ export default function ProjectBoard() {
       <section className="mx-auto flex max-w-[1520px] flex-col gap-5">
         <header className="grid gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-300">
+            <p className="text-sm font-semibold text-teal-700">
               Project management
             </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 dark:text-slate-50 sm:text-4xl">
+            <h1 className="mt-2 text-3xl font-semibold text-slate-950 sm:text-4xl">
               Project Board
             </h1>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
-            <div className="flex min-h-[70px] flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500 dark:border-slate-700 dark:bg-slate-950">
-                  <Search className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                  <input
-                    id="search"
-                    className="w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-slate-50 dark:placeholder:text-slate-500"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Title, label, or description"
-                  />
-                </div>
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <div className="flex min-h-11 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 transition-colors focus-within:ring-2 focus-within:ring-teal-500">
+                <Search className="h-4 w-4 text-slate-500" />
+                <input
+                  id="search"
+                  className="w-full border-0 bg-transparent text-sm outline-none"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Title, label, or description"
+                />
               </div>
-
-              <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
-                <DialogTrigger asChild>
-                  <Button className="min-h-11 sm:min-w-36" type="button">
-                    <Plus className="h-4 w-4" />
-                    New card
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <CirclePlus className="h-5 w-5 text-teal-700 dark:text-teal-300" />
-                      New card
-                    </DialogTitle>
-                  </DialogHeader>
-
-                  <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
-                    <Label htmlFor="card-title">Title</Label>
-                    <Input
-                      id="card-title"
-                      value={draft.title}
-                      onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-                      placeholder="Design pricing page"
-                    />
-
-                    <Label htmlFor="card-description">Description</Label>
-                    <Textarea
-                      id="card-description"
-                      className="resize-y"
-                      value={draft.description}
-                      onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-                      placeholder="Add context, acceptance criteria, or next steps"
-                    />
-
-                    <Label htmlFor="card-labels">Labels</Label>
-                    <Input
-                      id="card-labels"
-                      value={draft.labels}
-                      onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
-                      placeholder="Design, Launch"
-                    />
-
-                    <StatusPicker value={draftStatus} onChange={setDraftStatus} />
-
-                    <Button className="mt-1 min-h-11" disabled={saving} type="submit">
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                      Add card
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
-              <Button
-                aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-                aria-pressed={theme === "dark"}
-                className="min-h-11 sm:w-28"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                type="button"
-                variant="secondary"
-              >
-                {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                {theme === "dark" ? "Dark" : "Light"}
-              </Button>
             </div>
+
+            <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
+              <DialogTrigger asChild>
+                <Button className="min-h-11 sm:min-w-36" type="button">
+                  <Plus className="h-4 w-4" />
+                  New card
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <CirclePlus className="h-5 w-5 text-teal-700" />
+                    New card
+                  </DialogTitle>
+                </DialogHeader>
+
+                <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
+                  <Label htmlFor="card-title">Title</Label>
+                  <Input
+                    id="card-title"
+                    value={draft.title}
+                    onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                    placeholder="Design pricing page"
+                  />
+
+                  <Label htmlFor="card-description">Description</Label>
+                  <Textarea
+                    id="card-description"
+                    className="resize-y"
+                    value={draft.description}
+                    onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+                    placeholder="Add context, acceptance criteria, or next steps"
+                  />
+
+                  <Label htmlFor="card-labels">Labels</Label>
+                  <Input
+                    id="card-labels"
+                    value={draft.labels}
+                    onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
+                    placeholder="Design, Launch"
+                  />
+
+                  <StatusPicker value={draftStatus} onChange={setDraftStatus} />
+
+                  <Button className="mt-1 min-h-11" disabled={saving} type="submit">
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    Add card
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -349,10 +336,10 @@ export default function ProjectBoard() {
               {columns.map((column) => (
                 <div
                   key={column.id}
-                  className={cn(
-                    "min-w-0 rounded-lg border border-slate-200 bg-white/88 p-3 shadow-panel transition dark:border-slate-700 dark:bg-slate-900/82",
-                    pointerDraggedId || draggedId ? "ring-2 ring-teal-100 dark:ring-teal-400/25" : ""
-                  )}
+                  className={`min-w-0 border-t-4 bg-slate-100/70 p-3 transition ${
+                    pointerDraggedId || draggedId ? "ring-2 ring-teal-200" : ""
+                  }`}
+                  style={{ borderTopColor: column.color }}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => {
                     event.preventDefault();
@@ -367,8 +354,11 @@ export default function ProjectBoard() {
                 >
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className={`h-2.5 w-2.5 rounded-full ${column.accent}`} />
-                      <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700 dark:text-slate-300">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: column.color }}
+                      />
+                      <h2 className="text-sm font-semibold text-slate-800">
                         {column.title}
                       </h2>
                     </div>
@@ -377,7 +367,7 @@ export default function ProjectBoard() {
                     </Badge>
                   </div>
 
-                  <div className="flex min-h-[560px] flex-col gap-3 rounded-md bg-slate-50 p-2 dark:bg-slate-950/70">
+                  <div className="flex min-h-[560px] flex-col gap-3">
                     {loading ? (
                       <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -472,8 +462,8 @@ export default function ProjectBoard() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <Card className="px-4 py-3 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-slate-950 dark:text-slate-50">{value}</p>
+      <p className="text-xs font-semibold text-slate-500">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-slate-950">{value}</p>
     </Card>
   );
 }
@@ -490,7 +480,7 @@ function StatusPicker({
       <Label id="card-status-label">Status</Label>
       <div
         aria-labelledby="card-status-label"
-        className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1.5 dark:border-slate-700 dark:bg-slate-950"
+        className="grid grid-cols-2 gap-2 rounded-md border border-slate-200 bg-slate-50 p-1.5"
         role="radiogroup"
       >
         {columns.map((column) => {
@@ -510,7 +500,10 @@ function StatusPicker({
               role="radio"
               type="button"
             >
-              <span className={cn("h-2.5 w-2.5 rounded-full", column.accent)} />
+              <span
+                className="h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: column.color }}
+              />
               <span className="truncate">{column.title}</span>
               {selected && <Check className="ml-auto h-4 w-4 text-teal-700 dark:text-teal-300" />}
             </button>
