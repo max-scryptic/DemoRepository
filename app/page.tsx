@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Check, CirclePlus, GripVertical, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { Check, CirclePlus, GripVertical, Loader2, Moon, Plus, Search, Sun, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -62,7 +62,16 @@ const emptyDraft: CardDraft = {
   labels: ""
 };
 
+type Theme = "light" | "dark";
+
 export default function ProjectBoard() {
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof document === "undefined") {
+      return "dark";
+    }
+
+    return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  });
   const [cards, setCards] = useState<BoardCard[]>(starterCards);
   const [draft, setDraft] = useState<CardDraft>(emptyDraft);
   const [draftStatus, setDraftStatus] = useState<Status>("todo");
@@ -73,6 +82,11 @@ export default function ProjectBoard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    window.localStorage.setItem("project-board-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     let ignore = false;
@@ -224,11 +238,11 @@ export default function ProjectBoard() {
 
   return (
     <main
-      className="min-h-screen px-4 py-5 text-ink sm:px-6 lg:px-8"
+      className="min-h-screen px-4 py-5 text-ink transition-colors dark:text-slate-100 sm:px-6 lg:px-8"
       onPointerUp={() => setPointerDraggedId(null)}
     >
       <section className="mx-auto flex max-w-[1520px] flex-col gap-5">
-        <header className="grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
+        <header className="grid gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
           <div>
             <p className="text-sm font-semibold text-teal-700">
               Project management
@@ -312,7 +326,7 @@ export default function ProjectBoard() {
 
         <div className="flex flex-col gap-4">
           {notice && (
-            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100">
               {notice}
             </p>
           )}
@@ -355,12 +369,12 @@ export default function ProjectBoard() {
 
                   <div className="flex min-h-[560px] flex-col gap-3">
                     {loading ? (
-                      <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 py-6 text-sm text-slate-500">
+                      <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 py-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Loading
                       </div>
                     ) : groupedCards[column.id].length === 0 ? (
-                      <div className="rounded-md border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500">
+                      <div className="rounded-md border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
                         Drop cards here
                       </div>
                     ) : (
@@ -383,7 +397,7 @@ export default function ProjectBoard() {
 
                             setPointerDraggedId(card.id);
                           }}
-                          className={`rounded-md border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md ${
+                          className={`rounded-md border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600 ${
                             pointerDraggedId === card.id || draggedId === card.id
                               ? "cursor-grabbing opacity-75"
                               : "cursor-grab"
@@ -391,14 +405,14 @@ export default function ProjectBoard() {
                         >
                           <div className="mb-2 flex items-start justify-between gap-2">
                             <div className="flex items-start gap-2">
-                              <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                              <h3 className="text-sm font-semibold leading-5 text-slate-950">
+                              <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 dark:text-slate-500" />
+                              <h3 className="text-sm font-semibold leading-5 text-slate-950 dark:text-slate-50">
                                 {card.title}
                               </h3>
                             </div>
                             <Button
                               aria-label={`Delete ${card.title}`}
-                              className="text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                              className="text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:text-slate-500 dark:hover:bg-rose-500/10 dark:hover:text-rose-300"
                               onClick={() => deleteCard(card.id)}
                               onPointerDown={(event) => event.stopPropagation()}
                               size="icon"
@@ -410,7 +424,7 @@ export default function ProjectBoard() {
                           </div>
 
                           {card.description && (
-                            <p className="mb-3 text-sm leading-5 text-slate-600">{card.description}</p>
+                            <p className="mb-3 text-sm leading-5 text-slate-600 dark:text-slate-400">{card.description}</p>
                           )}
 
                           <div className="flex flex-wrap gap-1.5">
@@ -478,8 +492,8 @@ function StatusPicker({
               className={cn(
                 "flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-left text-sm font-medium transition",
                 selected
-                  ? "border-slate-300 bg-white text-slate-950 shadow-sm"
-                  : "border-transparent text-slate-600 hover:bg-white/70 hover:text-slate-950"
+                  ? "border-slate-300 bg-white text-slate-950 shadow-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-50"
+                  : "border-transparent text-slate-600 hover:bg-white/70 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-800/70 dark:hover:text-slate-50"
               )}
               key={column.id}
               onClick={() => onChange(column.id)}
@@ -491,7 +505,7 @@ function StatusPicker({
                 style={{ backgroundColor: column.color }}
               />
               <span className="truncate">{column.title}</span>
-              {selected && <Check className="ml-auto h-4 w-4 text-teal-700" />}
+              {selected && <Check className="ml-auto h-4 w-4 text-teal-700 dark:text-teal-300" />}
             </button>
           );
         })}
