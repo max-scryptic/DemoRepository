@@ -228,7 +228,7 @@ export default function ProjectBoard() {
       onPointerUp={() => setPointerDraggedId(null)}
     >
       <section className="mx-auto flex max-w-[1520px] flex-col gap-5">
-        <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
+        <header className="grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(440px,1fr)] lg:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
               Project management
@@ -238,7 +238,78 @@ export default function ProjectBoard() {
             </h1>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[520px]">
+          <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1">
+                <Label className="mb-2 block" htmlFor="search">
+                  Search board
+                </Label>
+                <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
+                  <Search className="h-4 w-4 text-slate-500" />
+                  <input
+                    id="search"
+                    className="w-full border-0 bg-transparent text-sm outline-none"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Title, label, or description"
+                  />
+                </div>
+              </div>
+
+              <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
+                <DialogTrigger asChild>
+                  <Button className="min-h-11 sm:min-w-36" type="button">
+                    <Plus className="h-4 w-4" />
+                    New card
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <CirclePlus className="h-5 w-5 text-teal-700" />
+                      New card
+                    </DialogTitle>
+                  </DialogHeader>
+
+                  <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
+                    <Label htmlFor="card-title">Title</Label>
+                    <Input
+                      id="card-title"
+                      value={draft.title}
+                      onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                      placeholder="Design pricing page"
+                    />
+
+                    <Label htmlFor="card-description">Description</Label>
+                    <Textarea
+                      id="card-description"
+                      className="resize-y"
+                      value={draft.description}
+                      onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+                      placeholder="Add context, acceptance criteria, or next steps"
+                    />
+
+                    <Label htmlFor="card-labels">Labels</Label>
+                    <Input
+                      id="card-labels"
+                      value={draft.labels}
+                      onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
+                      placeholder="Design, Launch"
+                    />
+
+                    <StatusPicker value={draftStatus} onChange={setDraftStatus} />
+
+                    <Button className="mt-1 min-h-11" disabled={saving} type="submit">
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      Add card
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
             <Metric label="Cards" value={cards.length.toString()} />
             <Metric label="Done" value={totalDone.toString()} />
             <Metric label="Storage" value={isSupabaseConfigured ? "Supabase" : "Local"} />
@@ -246,87 +317,18 @@ export default function ProjectBoard() {
         </header>
 
         <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:flex-row sm:items-end sm:justify-between">
-            <div className="w-full sm:max-w-md">
-              <Label className="mb-2 block" htmlFor="search">
-                Search board
-              </Label>
-              <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
-                <Search className="h-4 w-4 text-slate-500" />
-                <input
-                  id="search"
-                  className="w-full border-0 bg-transparent text-sm outline-none"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Title, label, or description"
-                />
-              </div>
-            </div>
-
-            <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
-              <DialogTrigger asChild>
-                <Button className="min-h-11 sm:min-w-36" type="button">
-                  <Plus className="h-4 w-4" />
-                  New card
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <CirclePlus className="h-5 w-5 text-teal-700" />
-                    New card
-                  </DialogTitle>
-                </DialogHeader>
-
-                <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
-                  <Label htmlFor="card-title">Title</Label>
-                  <Input
-                    id="card-title"
-                    value={draft.title}
-                    onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-                    placeholder="Design pricing page"
-                  />
-
-                  <Label htmlFor="card-description">Description</Label>
-                  <Textarea
-                    id="card-description"
-                    className="resize-y"
-                    value={draft.description}
-                    onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-                    placeholder="Add context, acceptance criteria, or next steps"
-                  />
-
-                  <Label htmlFor="card-labels">Labels</Label>
-                  <Input
-                    id="card-labels"
-                    value={draft.labels}
-                    onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
-                    placeholder="Design, Launch"
-                  />
-
-                  <StatusPicker value={draftStatus} onChange={setDraftStatus} />
-
-                  <Button className="mt-1 min-h-11" disabled={saving} type="submit">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    Add card
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
           {notice && (
             <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
               {notice}
             </p>
           )}
 
-          <section className="overflow-x-auto pb-3">
-            <div className="grid min-w-[1180px] grid-cols-5 gap-3 xl:min-w-0">
+          <section className="pb-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
               {columns.map((column) => (
                 <div
                   key={column.id}
-                  className={`rounded-lg border border-slate-200 bg-white/88 p-3 shadow-panel transition ${
+                  className={`min-w-0 rounded-lg border border-slate-200 bg-white/88 p-3 shadow-panel transition ${
                     pointerDraggedId || draggedId ? "ring-2 ring-teal-100" : ""
                   }`}
                   onDragOver={(event) => event.preventDefault()}
