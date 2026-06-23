@@ -9,6 +9,8 @@ import {
   LayoutDashboard,
   Loader2,
   Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Search,
   Settings,
@@ -76,6 +78,7 @@ const emptyDraft: CardDraft = {
 };
 
 type Theme = "light" | "dark";
+type ActiveView = "board" | "settings";
 
 export default function ProjectBoard() {
   const [theme, setTheme] = useState<Theme>(() => {
@@ -89,6 +92,8 @@ export default function ProjectBoard() {
   const [draft, setDraft] = useState<CardDraft>(emptyDraft);
   const [draftStatus, setDraftStatus] = useState<Status>("todo");
   const [isNewCardOpen, setIsNewCardOpen] = useState(false);
+  const [activeView, setActiveView] = useState<ActiveView>("board");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [pointerDraggedId, setPointerDraggedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -254,31 +259,87 @@ export default function ProjectBoard() {
       className="min-h-screen bg-background text-foreground"
       onPointerUp={() => setPointerDraggedId(null)}
     >
-      <div className="mx-auto grid min-h-screen max-w-[1600px] lg:grid-cols-[248px_minmax(0,1fr)]">
-        <aside className="hidden border-r border-border bg-card px-5 py-6 lg:block">
-          <div className="flex items-center gap-3">
+      <div
+        className={cn(
+          "mx-auto grid min-h-screen max-w-[1600px]",
+          isSidebarCollapsed ? "lg:grid-cols-[88px_minmax(0,1fr)]" : "lg:grid-cols-[248px_minmax(0,1fr)]"
+        )}
+      >
+        <aside className="hidden border-r border-border bg-card px-4 py-6 lg:block">
+          <div className={cn("flex items-center", isSidebarCollapsed ? "justify-center" : "gap-3")}>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-teal-50 text-teal-800">
               <Columns3 className="h-4 w-4" />
             </div>
-            <div>
+            <div className={cn(isSidebarCollapsed && "sr-only")}>
               <p className="text-sm font-semibold leading-5">GTM Workspace</p>
               <p className="text-xs text-muted-foreground">Project operations</p>
             </div>
           </div>
 
           <nav className="mt-8 space-y-1">
-            <Button className="w-full justify-start" type="button" variant="secondary">
+            <Button
+              aria-label="Project Board"
+              className={cn("w-full", isSidebarCollapsed ? "justify-center px-0" : "justify-start")}
+              onClick={() => setActiveView("board")}
+              title={isSidebarCollapsed ? "Project Board" : undefined}
+              type="button"
+              variant={activeView === "board" ? "secondary" : "ghost"}
+            >
               <LayoutDashboard className="h-4 w-4" />
-              Project Board
+              <span className={cn(isSidebarCollapsed && "sr-only")}>Project Board</span>
             </Button>
-            <Button className="w-full justify-start" type="button" variant="ghost">
+            <Button
+              aria-label="Settings"
+              className={cn("w-full", isSidebarCollapsed ? "justify-center px-0" : "justify-start")}
+              onClick={() => setActiveView("settings")}
+              title={isSidebarCollapsed ? "Settings" : undefined}
+              type="button"
+              variant={activeView === "settings" ? "secondary" : "ghost"}
+            >
               <Settings className="h-4 w-4" />
-              Settings
+              <span className={cn(isSidebarCollapsed && "sr-only")}>Settings</span>
             </Button>
           </nav>
+
+          <div className="mt-8 border-t border-border pt-4">
+            <Button
+              aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className={cn("w-full", isSidebarCollapsed ? "justify-center px-0" : "justify-start")}
+              onClick={() => setIsSidebarCollapsed((value) => !value)}
+              title={isSidebarCollapsed ? "Expand sidebar" : undefined}
+              type="button"
+              variant="outline"
+            >
+              {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              <span className={cn(isSidebarCollapsed && "sr-only")}>Collapse</span>
+            </Button>
+          </div>
         </aside>
 
         <section className="flex min-w-0 flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
+          <div className="flex gap-2 lg:hidden">
+            <Button
+              className="flex-1"
+              onClick={() => setActiveView("board")}
+              type="button"
+              variant={activeView === "board" ? "secondary" : "outline"}
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Board
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={() => setActiveView("settings")}
+              type="button"
+              variant={activeView === "settings" ? "secondary" : "outline"}
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Button>
+          </div>
+
+          {activeView === "board" ? (
+            <>
           <header className="flex flex-col gap-4 border-b border-border pb-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-2xl">
               <p className="text-sm font-medium text-teal-700">Project management</p>
@@ -359,16 +420,6 @@ export default function ProjectBoard() {
                     </form>
                   </DialogContent>
                 </Dialog>
-
-                <Button
-                  aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  size="icon"
-                  type="button"
-                  variant="outline"
-                >
-                  {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                </Button>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
@@ -507,9 +558,125 @@ export default function ProjectBoard() {
               </div>
             </section>
           </div>
+            </>
+          ) : (
+            <SettingsView
+              cardsCount={cards.length}
+              doneCount={totalDone}
+              isSidebarCollapsed={isSidebarCollapsed}
+              onSidebarCollapsedChange={setIsSidebarCollapsed}
+              onThemeChange={setTheme}
+              theme={theme}
+            />
+          )}
         </section>
       </div>
     </main>
+  );
+}
+
+function SettingsView({
+  cardsCount,
+  doneCount,
+  isSidebarCollapsed,
+  onSidebarCollapsedChange,
+  onThemeChange,
+  theme
+}: {
+  cardsCount: number;
+  doneCount: number;
+  isSidebarCollapsed: boolean;
+  onSidebarCollapsedChange: (collapsed: boolean) => void;
+  onThemeChange: (theme: Theme) => void;
+  theme: Theme;
+}) {
+  return (
+    <>
+      <header className="border-b border-border pb-5">
+        <p className="text-sm font-medium text-teal-700">Workspace preferences</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
+          Settings
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          Manage the workspace appearance and layout defaults for your project board.
+        </p>
+      </header>
+
+      <div className="grid max-w-5xl gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Appearance</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Theme</p>
+                  <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                    Choose how the board should look on this device.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted p-1">
+                  <Button
+                    className={cn(theme === "light" && "bg-card shadow-sm hover:bg-card")}
+                    onClick={() => onThemeChange("light")}
+                    type="button"
+                    variant={theme === "light" ? "outline" : "ghost"}
+                  >
+                    <Sun className="h-4 w-4" />
+                    Light
+                  </Button>
+                  <Button
+                    className={cn(theme === "dark" && "bg-card shadow-sm hover:bg-card")}
+                    onClick={() => onThemeChange("dark")}
+                    type="button"
+                    variant={theme === "dark" ? "outline" : "ghost"}
+                  >
+                    <Moon className="h-4 w-4" />
+                    Dark
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Layout</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Sidebar</p>
+                  <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                    Keep the navigation compact when you want more room for columns.
+                  </p>
+                </div>
+                <Button
+                  className="sm:min-w-36"
+                  onClick={() => onSidebarCollapsedChange(!isSidebarCollapsed)}
+                  type="button"
+                  variant="outline"
+                >
+                  {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+                  {isSidebarCollapsed ? "Expand" : "Collapse"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Workspace</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Metric label="Cards" value={cardsCount.toString()} />
+            <Metric label="Done" value={doneCount.toString()} />
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 }
 
