@@ -1,10 +1,21 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Check, CirclePlus, GripVertical, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import {
+  Check,
+  CirclePlus,
+  Columns3,
+  GripVertical,
+  LayoutDashboard,
+  Loader2,
+  Plus,
+  Search,
+  Settings,
+  Trash2
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,11 +25,11 @@ import { cn } from "@/lib/utils";
 import type { BoardCard, CardDraft, Status } from "@/types/board";
 
 const columns: Array<{ id: Status; title: string; accent: string }> = [
-  { id: "backlog", title: "Backlog", accent: "bg-slate-500" },
-  { id: "todo", title: "To do", accent: "bg-sky-500" },
-  { id: "in_progress", title: "In progress", accent: "bg-amber-500" },
-  { id: "review", title: "Review", accent: "bg-violet-500" },
-  { id: "done", title: "Done", accent: "bg-emerald-500" }
+  { id: "backlog", title: "Backlog", accent: "bg-slate-400" },
+  { id: "todo", title: "To do", accent: "bg-stone-500" },
+  { id: "in_progress", title: "In progress", accent: "bg-amber-600" },
+  { id: "review", title: "Review", accent: "bg-teal-700" },
+  { id: "done", title: "Done", accent: "bg-emerald-700" }
 ];
 
 const starterCards: BoardCard[] = [
@@ -224,109 +235,139 @@ export default function ProjectBoard() {
 
   return (
     <main
-      className="min-h-screen px-4 py-5 text-ink sm:px-6 lg:px-8"
+      className="min-h-screen bg-background text-foreground"
       onPointerUp={() => setPointerDraggedId(null)}
     >
-      <section className="mx-auto flex max-w-[1520px] flex-col gap-5">
-        <header className="grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
-              Project management
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
-              Project Board
-            </h1>
-          </div>
-
-          <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-            <div className="flex min-h-[70px] flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
-                  <Search className="h-4 w-4 text-slate-500" />
-                  <input
-                    id="search"
-                    className="w-full border-0 bg-transparent text-sm outline-none"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Title, label, or description"
-                  />
-                </div>
-              </div>
-
-              <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
-                <DialogTrigger asChild>
-                  <Button className="min-h-11 sm:min-w-36" type="button">
-                    <Plus className="h-4 w-4" />
-                    New card
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <CirclePlus className="h-5 w-5 text-teal-700" />
-                      New card
-                    </DialogTitle>
-                  </DialogHeader>
-
-                  <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
-                    <Label htmlFor="card-title">Title</Label>
-                    <Input
-                      id="card-title"
-                      value={draft.title}
-                      onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-                      placeholder="Design pricing page"
-                    />
-
-                    <Label htmlFor="card-description">Description</Label>
-                    <Textarea
-                      id="card-description"
-                      className="resize-y"
-                      value={draft.description}
-                      onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-                      placeholder="Add context, acceptance criteria, or next steps"
-                    />
-
-                    <Label htmlFor="card-labels">Labels</Label>
-                    <Input
-                      id="card-labels"
-                      value={draft.labels}
-                      onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
-                      placeholder="Design, Launch"
-                    />
-
-                    <StatusPicker value={draftStatus} onChange={setDraftStatus} />
-
-                    <Button className="mt-1 min-h-11" disabled={saving} type="submit">
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                      Add card
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
+      <div className="mx-auto grid min-h-screen max-w-[1600px] lg:grid-cols-[248px_minmax(0,1fr)]">
+        <aside className="hidden border-r border-border bg-card px-5 py-6 lg:block">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-teal-50 text-teal-800">
+              <Columns3 className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold leading-5">GTM Workspace</p>
+              <p className="text-xs text-muted-foreground">Project operations</p>
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Metric label="Cards" value={cards.length.toString()} />
-            <Metric label="Done" value={totalDone.toString()} />
-          </div>
-        </header>
+          <nav className="mt-8 space-y-1">
+            <Button className="w-full justify-start" type="button" variant="secondary">
+              <LayoutDashboard className="h-4 w-4" />
+              Project Board
+            </Button>
+            <Button className="w-full justify-start" type="button" variant="ghost">
+              <Settings className="h-4 w-4" />
+              Settings
+            </Button>
+          </nav>
+        </aside>
 
-        <div className="flex flex-col gap-4">
-          {notice && (
-            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              {notice}
-            </p>
-          )}
+        <section className="flex min-w-0 flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
+          <header className="flex flex-col gap-4 border-b border-border pb-5 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-sm font-medium text-teal-700">Project management</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
+                Project Board
+              </h1>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                Prioritize launch work, review dependencies, and keep delivery moving across the team.
+              </p>
+            </div>
 
-          <section className="pb-3">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+            <div className="flex flex-col gap-3 lg:min-w-[620px]">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="relative min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    className="pl-9"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search title, label, or description"
+                  />
+                </div>
+
+                <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="min-h-10 sm:min-w-36" type="button">
+                      <Plus className="h-4 w-4" />
+                      New card
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <CirclePlus className="h-5 w-5 text-teal-700" />
+                        New card
+                      </DialogTitle>
+                    </DialogHeader>
+
+                    <form className="flex flex-col gap-4" onSubmit={handleCreateCard}>
+                      <div className="space-y-2">
+                        <Label htmlFor="card-title">Title</Label>
+                        <Input
+                          id="card-title"
+                          value={draft.title}
+                          onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                          placeholder="Design pricing page"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="card-description">Description</Label>
+                        <Textarea
+                          id="card-description"
+                          className="resize-y"
+                          value={draft.description}
+                          onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+                          placeholder="Add context, acceptance criteria, or next steps"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="card-labels">Labels</Label>
+                        <Input
+                          id="card-labels"
+                          value={draft.labels}
+                          onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
+                          placeholder="Design, Launch"
+                        />
+                      </div>
+
+                      <StatusPicker value={draftStatus} onChange={setDraftStatus} />
+
+                      <Button className="mt-1 min-h-10" disabled={saving} type="submit">
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                        Add card
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Metric label="Cards" value={cards.length.toString()} />
+                <Metric label="Done" value={totalDone.toString()} />
+              </div>
+            </div>
+          </header>
+
+          <div className="flex flex-col gap-4">
+            {notice && (
+              <Card className="border-amber-200 bg-amber-50 text-amber-950">
+                <CardContent className="p-3 text-sm">{notice}</CardContent>
+              </Card>
+            )}
+
+            <section className="pb-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
               {columns.map((column) => (
-                <div
+                <Card
                   key={column.id}
-                  className={`min-w-0 rounded-lg border border-slate-200 bg-white/88 p-3 shadow-panel transition ${
-                    pointerDraggedId || draggedId ? "ring-2 ring-teal-100" : ""
-                  }`}
+                  className={cn(
+                    "min-w-0 transition",
+                    (pointerDraggedId || draggedId) && "ring-2 ring-teal-100"
+                  )}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => {
                     event.preventDefault();
@@ -339,26 +380,27 @@ export default function ProjectBoard() {
                     }
                   }}
                 >
-                  <div className="mb-3 flex items-center justify-between gap-2">
+                  <CardHeader className="flex-row items-center justify-between space-y-0 p-3">
                     <div className="flex items-center gap-2">
                       <span className={`h-2.5 w-2.5 rounded-full ${column.accent}`} />
-                      <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700">
+                      <CardTitle className="text-sm">
                         {column.title}
-                      </h2>
+                      </CardTitle>
                     </div>
                     <Badge variant="secondary">
                       {groupedCards[column.id].length}
                     </Badge>
-                  </div>
+                  </CardHeader>
 
-                  <div className="flex min-h-[560px] flex-col gap-3 rounded-md bg-slate-50 p-2">
+                  <CardContent className="p-3 pt-0">
+                  <div className="flex min-h-[560px] flex-col gap-3 rounded-xl bg-muted p-2">
                     {loading ? (
-                      <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 py-6 text-sm text-slate-500">
+                      <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-6 text-sm text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Loading
                       </div>
                     ) : groupedCards[column.id].length === 0 ? (
-                      <div className="rounded-md border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500">
+                      <div className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
                         Drop cards here
                       </div>
                     ) : (
@@ -381,7 +423,7 @@ export default function ProjectBoard() {
 
                             setPointerDraggedId(card.id);
                           }}
-                          className={`rounded-md border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md ${
+                          className={`rounded-xl border border-border bg-card p-3 shadow-sm transition hover:border-slate-300 ${
                             pointerDraggedId === card.id || draggedId === card.id
                               ? "cursor-grabbing opacity-75"
                               : "cursor-grab"
@@ -389,14 +431,14 @@ export default function ProjectBoard() {
                         >
                           <div className="mb-2 flex items-start justify-between gap-2">
                             <div className="flex items-start gap-2">
-                              <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                              <h3 className="text-sm font-semibold leading-5 text-slate-950">
+                              <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                              <h3 className="text-sm font-semibold leading-5 text-foreground">
                                 {card.title}
                               </h3>
                             </div>
                             <Button
                               aria-label={`Delete ${card.title}`}
-                              className="text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                              className="text-muted-foreground hover:bg-rose-50 hover:text-rose-600"
                               onClick={() => deleteCard(card.id)}
                               onPointerDown={(event) => event.stopPropagation()}
                               size="icon"
@@ -408,7 +450,7 @@ export default function ProjectBoard() {
                           </div>
 
                           {card.description && (
-                            <p className="mb-3 text-sm leading-5 text-slate-600">{card.description}</p>
+                            <p className="mb-3 text-sm leading-5 text-muted-foreground">{card.description}</p>
                           )}
 
                           <div className="flex flex-wrap gap-1.5">
@@ -433,21 +475,23 @@ export default function ProjectBoard() {
                       ))
                     )}
                   </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
-            </div>
-          </section>
-        </div>
-      </section>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <Card className="px-4 py-3 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-slate-950">{value}</p>
+    <Card className="rounded-xl px-4 py-3">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-foreground">{value}</p>
     </Card>
   );
 }
@@ -464,30 +508,31 @@ function StatusPicker({
       <Label id="card-status-label">Status</Label>
       <div
         aria-labelledby="card-status-label"
-        className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1.5"
+        className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-muted p-1.5"
         role="radiogroup"
       >
         {columns.map((column) => {
           const selected = value === column.id;
 
           return (
-            <button
+            <Button
               aria-checked={selected}
               className={cn(
-                "flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-left text-sm font-medium transition",
+                "min-h-10 justify-start px-3",
                 selected
-                  ? "border-slate-300 bg-white text-slate-950 shadow-sm"
-                  : "border-transparent text-slate-600 hover:bg-white/70 hover:text-slate-950"
+                  ? "border-border bg-card text-foreground shadow-sm"
+                  : "border-transparent text-muted-foreground"
               )}
               key={column.id}
               onClick={() => onChange(column.id)}
               role="radio"
               type="button"
+              variant={selected ? "outline" : "ghost"}
             >
               <span className={cn("h-2.5 w-2.5 rounded-full", column.accent)} />
               <span className="truncate">{column.title}</span>
               {selected && <Check className="ml-auto h-4 w-4 text-teal-700" />}
-            </button>
+            </Button>
           );
         })}
       </div>
