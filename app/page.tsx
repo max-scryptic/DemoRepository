@@ -37,21 +37,15 @@ const columns: Array<{ id: Status; title: string; accent: string }> = [
   { id: "done", title: "Done", accent: "bg-emerald-500" }
 ];
 
-const emptyDraft: CardDraft = {
-  title: "",
-  description: "",
-  labels: ""
-};
-
-const emptyAuthForm = {
-  email: "",
-  password: ""
-};
-
-type AuthMode = "login" | "signup";
-type SignupStep = "credentials" | "verification";
-
-const signupSteps: Array<{ id: SignupStep; label: string; description: string; icon: ReactNode }> = [
+const starterCards: BoardCard[] = [
+  {
+    id: "22222222-2222-4222-8222-222222222222",
+    title: "Create launch checklist",
+    description: "Collect the final QA, copy, analytics, and handoff tasks in one place.",
+    status: "todo",
+    position: 0,
+    labels: ["Ops"]
+  },
   {
     id: "credentials",
     label: "Account details",
