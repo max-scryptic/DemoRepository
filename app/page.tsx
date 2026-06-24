@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Check,
   CirclePlus,
-  Columns3,
   GripVertical,
   LayoutDashboard,
   Loader2,
@@ -272,19 +271,36 @@ export default function ProjectBoard() {
           )}
         >
           <div className={cn("flex items-center", isSidebarCollapsed ? "justify-center" : "gap-3")}>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-teal-50 text-teal-800">
-              <Columns3 className="h-4 w-4" />
-            </div>
-            <div
-              className={cn(
-                "min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-in-out motion-reduce:transition-none",
-                isSidebarCollapsed ? "max-w-0 -translate-x-1 opacity-0" : "max-w-44 translate-x-0 opacity-100"
-              )}
-              aria-hidden={isSidebarCollapsed}
-            >
-              <p className="text-sm font-semibold leading-5">GTM Workspace</p>
-              <p className="text-xs text-muted-foreground">Project operations</p>
-            </div>
+            {isSidebarCollapsed ? (
+              <Button
+                aria-label="Expand sidebar"
+                className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                onClick={() => setIsSidebarCollapsed(false)}
+                size="icon"
+                title="Expand sidebar"
+                type="button"
+                variant="ghost"
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </Button>
+            ) : (
+              <div className="flex w-full items-center justify-between gap-3">
+                <p className="min-w-0 truncate text-base font-semibold leading-6 text-foreground">
+                  Scryptic
+                </p>
+                <Button
+                  aria-label="Collapse sidebar"
+                  className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
+                  onClick={() => setIsSidebarCollapsed(true)}
+                  size="icon"
+                  title="Collapse sidebar"
+                  type="button"
+                  variant="ghost"
+                >
+                  <PanelLeftClose className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
 
           <nav className="mt-8 space-y-1">
@@ -312,19 +328,6 @@ export default function ProjectBoard() {
             </Button>
           </nav>
 
-          <div className="mt-8 border-t border-border pt-4">
-            <Button
-              aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className={cn("w-full", isSidebarCollapsed ? "justify-center px-0" : "justify-start")}
-              onClick={() => setIsSidebarCollapsed((value) => !value)}
-              title={isSidebarCollapsed ? "Expand sidebar" : undefined}
-              type="button"
-              variant="outline"
-            >
-              {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-              <span className={sidebarLabelClassName(isSidebarCollapsed)}>Collapse</span>
-            </Button>
-          </div>
         </aside>
 
         <section className="flex min-w-0 flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
