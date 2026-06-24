@@ -45,8 +45,7 @@ const emptyDraft: CardDraft = {
 
 const emptyAuthForm = {
   email: "",
-  password: "",
-  verificationCode: ""
+  password: ""
 };
 
 type AuthMode = "login" | "signup";
@@ -62,7 +61,7 @@ const signupSteps: Array<{ id: SignupStep; label: string; description: string; i
   {
     id: "verification",
     label: "Verify email",
-    description: "Enter your code",
+    description: "Open the email link",
     icon: <Mail className="h-4 w-4" />
   }
 ];
@@ -619,38 +618,36 @@ function AuthPanel() {
     if (mode === "signup") {
       setPendingEmail(email);
       setSignupStep("verification");
-      setForm((current) => ({ ...current, verificationCode: "" }));
       setMessage(
         result.data.session
           ? "Account created. Email confirmations appear to be disabled in Supabase, so you are already signed in."
-          : "We sent a verification code to your email."
+          : "We sent a confirmation email. Open the link in that email to finish creating your account."
       );
     }
   }
 
-  async function handleVerifyEmail(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
+  async function handleResendConfirmationEmail() {
     if (!supabase) {
-      setMessage("Add Supabase environment variables before verifying email.");
+      setMessage("Add Supabase environment variables before resending confirmation email.");
       return;
     }
 
     const email = pendingEmail || form.email.trim().toLowerCase();
-    const token = form.verificationCode.trim().replace(/\s/g, "");
 
-    if (!isValidEmail(email) || token.length < 6) {
-      setMessage("Enter the verification code from your email.");
+    if (!isValidEmail(email)) {
+      setMessage("Enter a valid email address before resending confirmation.");
       return;
     }
 
     setLoading(true);
     setMessage(null);
 
-    const { error } = await supabase.auth.verifyOtp({
+    const { error } = await supabase.auth.resend({
       email,
-      token,
-      type: "signup"
+      type: "signup",
+      options: {
+        emailRedirectTo: window.location.origin
+      }
     });
 
     setLoading(false);
@@ -660,8 +657,7 @@ function AuthPanel() {
       return;
     }
 
-    applyLightThemePreference();
-    setMessage("Email verified. Opening your dashboard...");
+    setMessage("Confirmation email sent again. Check your inbox and spam folder.");
   }
 
   async function handleGoogleSignIn() {
@@ -722,29 +718,26 @@ function AuthPanel() {
 
         {mode === "signup" && <SignupWizardSteps currentStep={signupStep} />}
 
-        {isVerifyingSignup ? (
-          <form className="space-y-3" onSubmit={handleVerifyEmail}>
+        {signupStep === "verification" && mode === "signup" ? (
+          <div className="space-y-3">
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-              Code sent to <span className="font-medium text-slate-900">{pendingEmail || form.email}</span>
+              Confirmation email sent to{" "}
+              <span className="font-medium text-slate-900">{pendingEmail || form.email}</span>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="verification-code">Verification code</Label>
-              <Input
-                autoCapitalize="none"
-                autoComplete="one-time-code"
-                disabled={!isSupabaseConfigured}
-                id="verification-code"
-                inputMode="numeric"
-                onChange={(event) => setForm({ ...form, verificationCode: event.target.value })}
-                placeholder="123456"
-                value={form.verificationCode}
-              />
+            <div className="rounded-lg border border-teal-100 bg-teal-50 px-3 py-3 text-sm text-teal-900">
+              Open the confirmation link from Supabase to activate your account. Once confirmed,
+              you can return here and sign in with your email and password.
             </div>
 
-            <Button className="w-full" disabled={loading || !isSupabaseConfigured} type="submit">
+            <Button
+              className="w-full"
+              disabled={loading || !isSupabaseConfigured}
+              onClick={handleResendConfirmationEmail}
+              type="button"
+            >
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Verify email
+              Resend confirmation email
             </Button>
 
             <Button
@@ -759,7 +752,7 @@ function AuthPanel() {
             >
               Edit email or password
             </Button>
-          </form>
+          </div>
         ) : (
           <form className="space-y-3" onSubmit={handlePasswordAuth}>
             <div className="space-y-2">
