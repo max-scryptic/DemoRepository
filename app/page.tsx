@@ -8,8 +8,10 @@ import {
   CirclePlus,
   FolderKanban,
   GripVertical,
+  KeyRound,
   Loader2,
   LogOut,
+  Mail,
   Plus,
   Search,
   Settings,
@@ -42,11 +44,13 @@ const emptyDraft: CardDraft = {
 };
 
 const emptyAuthForm = {
-  username: "",
-  password: ""
+  email: "",
+  password: "",
+  verificationCode: ""
 };
 
 type AuthMode = "login" | "signup";
+type SignupStep = "credentials" | "verification";
 
 const themeStorageKey = "project-board-theme";
 
@@ -534,8 +538,11 @@ export default function ProjectBoard() {
 function AuthPanel() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [form, setForm] = useState(emptyAuthForm);
+  const [signupStep, setSignupStep] = useState<SignupStep>("credentials");
+  const [pendingEmail, setPendingEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const passwordStrength = useMemo(() => getPasswordStrength(form.password), [form.password]);
 
   async function handlePasswordAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -545,27 +552,29 @@ function AuthPanel() {
       return;
     }
 
-    const username = normalizeUsername(form.username);
+    const email = form.email.trim().toLowerCase();
     const password = form.password;
 
-    if (!username || password.length < 6) {
-      setMessage("Enter a username and a password of at least 6 characters.");
+    if (!isValidEmail(email) || password.length < 6) {
+      setMessage("Enter a valid email address and a password of at least 6 characters.");
+      return;
+    }
+
+    if (mode === "signup" && !passwordStrength.isStrong) {
+      setMessage("Choose a stronger password before creating your account.");
       return;
     }
 
     setLoading(true);
     setMessage(null);
 
-    const email = usernameToAuthEmail(username);
     const result =
       mode === "signup"
         ? await supabase.auth.signUp({
             email,
             password,
             options: {
-              data: {
-                username
-              }
+              emailRedirectTo: window.location.origin
             }
           })
         : await supabase.auth.signInWithPassword({
@@ -584,9 +593,52 @@ function AuthPanel() {
       applyLightThemePreference();
     }
 
-    if (mode === "signup" && !result.data.session) {
-      setMessage("Account created. Check your Supabase email confirmation settings before logging in.");
+    if (mode === "signup") {
+      setPendingEmail(email);
+      setSignupStep("verification");
+      setForm((current) => ({ ...current, verificationCode: "" }));
+      setMessage(
+        result.data.session
+          ? "Account created. Email confirmations appear to be disabled in Supabase, so you are already signed in."
+          : "We sent a verification code to your email."
+      );
     }
+  }
+
+  async function handleVerifyEmail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!supabase) {
+      setMessage("Add Supabase environment variables before verifying email.");
+      return;
+    }
+
+    const email = pendingEmail || form.email.trim().toLowerCase();
+    const token = form.verificationCode.trim().replace(/\s/g, "");
+
+    if (!isValidEmail(email) || token.length < 6) {
+      setMessage("Enter the verification code from your email.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "signup"
+    });
+
+    setLoading(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    applyLightThemePreference();
+    setMessage("Email verified. Opening your dashboard...");
   }
 
   async function handleGoogleSignIn() {
@@ -634,6 +686,8 @@ function AuthPanel() {
               key={item}
               onClick={() => {
                 setMode(item);
+                setSignupStep("credentials");
+                setPendingEmail("");
                 setMessage(null);
               }}
               type="button"
@@ -643,38 +697,88 @@ function AuthPanel() {
           ))}
         </div>
 
-        <form className="space-y-3" onSubmit={handlePasswordAuth}>
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              autoCapitalize="none"
-              autoComplete="username"
-              disabled={!isSupabaseConfigured}
-              id="username"
-              onChange={(event) => setForm({ ...form, username: event.target.value })}
-              placeholder="alex"
-              value={form.username}
-            />
+        {mode === "signup" && (
+          <div className="mb-4 grid grid-cols-2 gap-2">
+            <StepPill active={signupStep === "credentials"} icon={<KeyRound className="h-4 w-4" />} label="Account" />
+            <StepPill active={signupStep === "verification"} icon={<Mail className="h-4 w-4" />} label="Verify" />
           </div>
+        )}
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
-              disabled={!isSupabaseConfigured}
-              id="password"
-              onChange={(event) => setForm({ ...form, password: event.target.value })}
-              placeholder="Password"
-              type="password"
-              value={form.password}
-            />
-          </div>
+        {signupStep === "verification" && mode === "signup" ? (
+          <form className="space-y-3" onSubmit={handleVerifyEmail}>
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              Code sent to <span className="font-medium text-slate-900">{pendingEmail || form.email}</span>
+            </div>
 
-          <Button className="w-full" disabled={loading || !isSupabaseConfigured} type="submit">
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {mode === "login" ? "Log in" : "Create account"}
-          </Button>
-        </form>
+            <div className="space-y-2">
+              <Label htmlFor="verification-code">Verification code</Label>
+              <Input
+                autoCapitalize="none"
+                autoComplete="one-time-code"
+                disabled={!isSupabaseConfigured}
+                id="verification-code"
+                inputMode="numeric"
+                onChange={(event) => setForm({ ...form, verificationCode: event.target.value })}
+                placeholder="123456"
+                value={form.verificationCode}
+              />
+            </div>
+
+            <Button className="w-full" disabled={loading || !isSupabaseConfigured} type="submit">
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              Verify email
+            </Button>
+
+            <Button
+              className="w-full"
+              disabled={loading}
+              onClick={() => {
+                setSignupStep("credentials");
+                setMessage(null);
+              }}
+              type="button"
+              variant="ghost"
+            >
+              Edit email or password
+            </Button>
+          </form>
+        ) : (
+          <form className="space-y-3" onSubmit={handlePasswordAuth}>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                autoCapitalize="none"
+                autoComplete="email"
+                disabled={!isSupabaseConfigured}
+                id="email"
+                onChange={(event) => setForm({ ...form, email: event.target.value })}
+                placeholder="maxwinterleinweber@gmail.com"
+                type="email"
+                value={form.email}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                disabled={!isSupabaseConfigured}
+                id="password"
+                onChange={(event) => setForm({ ...form, password: event.target.value })}
+                placeholder="Password"
+                type="password"
+                value={form.password}
+              />
+            </div>
+
+            {mode === "signup" && <PasswordStrengthMeter strength={passwordStrength} />}
+
+            <Button className="w-full" disabled={loading || !isSupabaseConfigured} type="submit">
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {mode === "login" ? "Log in" : "Create account"}
+            </Button>
+          </form>
+        )}
 
         <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
           <span className="h-px flex-1 bg-slate-200" />
@@ -706,6 +810,62 @@ function AuthPanel() {
         )}
       </Card>
     </main>
+  );
+}
+
+function StepPill({ active, icon, label }: { active: boolean; icon: ReactNode; label: string }) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium",
+        active ? "border-teal-200 bg-teal-50 text-teal-800" : "border-slate-200 bg-white text-slate-500"
+      )}
+    >
+      {icon}
+      {label}
+    </div>
+  );
+}
+
+type PasswordStrength = {
+  label: string;
+  score: number;
+  isStrong: boolean;
+  checks: Array<{ label: string; met: boolean }>;
+};
+
+function PasswordStrengthMeter({ strength }: { strength: PasswordStrength }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-slate-800">Password strength</p>
+        <p className={cn("text-xs font-semibold", strength.isStrong ? "text-teal-700" : "text-slate-500")}>
+          {strength.label}
+        </p>
+      </div>
+      <div className="grid grid-cols-5 gap-1">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <span
+            className={cn(
+              "h-1.5 rounded-full",
+              index < strength.score ? "bg-teal-600" : "bg-slate-200"
+            )}
+            key={index}
+          />
+        ))}
+      </div>
+      <div className="mt-3 grid gap-1.5">
+        {strength.checks.map((check) => (
+          <div
+            className={cn("flex items-center gap-2 text-xs", check.met ? "text-slate-700" : "text-slate-500")}
+            key={check.label}
+          >
+            <Check className={cn("h-3.5 w-3.5", check.met ? "text-teal-700" : "text-slate-300")} />
+            {check.label}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -821,12 +981,26 @@ function normalizePositions(cards: BoardCard[]) {
   );
 }
 
-function normalizeUsername(value: string) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function usernameToAuthEmail(username: string) {
-  return `${username}@project-board.local`;
+function getPasswordStrength(password: string): PasswordStrength {
+  const checks = [
+    { label: "At least 8 characters", met: password.length >= 8 },
+    { label: "Upper and lowercase letters", met: /[a-z]/.test(password) && /[A-Z]/.test(password) },
+    { label: "At least one number", met: /\d/.test(password) },
+    { label: "At least one symbol", met: /[^A-Za-z0-9]/.test(password) }
+  ];
+  const score = checks.filter((check) => check.met).length + (password.length >= 12 ? 1 : 0);
+  const normalizedScore = Math.min(score, 5);
+
+  return {
+    checks,
+    isStrong: checks.every((check) => check.met),
+    label: ["Very weak", "Weak", "Fair", "Good", "Strong", "Excellent"][normalizedScore],
+    score: normalizedScore
+  };
 }
 
 function getUserDisplayName(user: User) {
