@@ -572,10 +572,6 @@ export default function ProjectBoard() {
             </>
           ) : (
             <SettingsView
-              cardsCount={cards.length}
-              doneCount={totalDone}
-              isSidebarCollapsed={isSidebarCollapsed}
-              onSidebarCollapsedChange={setIsSidebarCollapsed}
               onThemeChange={setTheme}
               theme={theme}
             />
@@ -594,17 +590,9 @@ function sidebarLabelClassName(isCollapsed: boolean) {
 }
 
 function SettingsView({
-  cardsCount,
-  doneCount,
-  isSidebarCollapsed,
-  onSidebarCollapsedChange,
   onThemeChange,
   theme
 }: {
-  cardsCount: number;
-  doneCount: number;
-  isSidebarCollapsed: boolean;
-  onSidebarCollapsedChange: (collapsed: boolean) => void;
   onThemeChange: (theme: Theme) => void;
   theme: Theme;
 }) {
@@ -620,77 +608,40 @@ function SettingsView({
         </p>
       </header>
 
-      <div className="grid max-w-5xl gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Appearance</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Theme</p>
-                  <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                    Choose how the board should look on this device.
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted p-1">
-                  <Button
-                    className={cn(theme === "light" && "bg-card shadow-sm hover:bg-card")}
-                    onClick={() => onThemeChange("light")}
-                    type="button"
-                    variant={theme === "light" ? "outline" : "ghost"}
-                  >
-                    <Sun className="h-4 w-4" />
-                    Light
-                  </Button>
-                  <Button
-                    className={cn(theme === "dark" && "bg-card shadow-sm hover:bg-card")}
-                    onClick={() => onThemeChange("dark")}
-                    type="button"
-                    variant={theme === "dark" ? "outline" : "ghost"}
-                  >
-                    <Moon className="h-4 w-4" />
-                    Dark
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Layout</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Sidebar</p>
-                  <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                    Keep the navigation compact when you want more room for columns.
-                  </p>
-                </div>
-                <Button
-                  className="sm:min-w-36"
-                  onClick={() => onSidebarCollapsedChange(!isSidebarCollapsed)}
-                  type="button"
-                  variant="outline"
-                >
-                  {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-                  {isSidebarCollapsed ? "Expand" : "Collapse"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
+      <div className="max-w-3xl">
         <Card>
           <CardHeader>
-            <CardTitle>Workspace</CardTitle>
+            <CardTitle>Appearance</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <Metric label="Cards" value={cardsCount.toString()} />
-            <Metric label="Done" value={doneCount.toString()} />
+          <CardContent>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">Theme</p>
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                  Choose how the board should look on this device.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted p-1">
+                <Button
+                  className={cn(theme === "light" && "bg-card shadow-sm hover:bg-card")}
+                  onClick={() => onThemeChange("light")}
+                  type="button"
+                  variant={theme === "light" ? "outline" : "ghost"}
+                >
+                  <Sun className="h-4 w-4" />
+                  Light
+                </Button>
+                <Button
+                  className={cn(theme === "dark" && "bg-card shadow-sm hover:bg-card")}
+                  onClick={() => onThemeChange("dark")}
+                  type="button"
+                  variant={theme === "dark" ? "outline" : "ghost"}
+                >
+                  <Moon className="h-4 w-4" />
+                  Dark
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
