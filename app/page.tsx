@@ -52,6 +52,21 @@ const emptyAuthForm = {
 type AuthMode = "login" | "signup";
 type SignupStep = "credentials" | "verification";
 
+const signupSteps: Array<{ id: SignupStep; label: string; description: string; icon: ReactNode }> = [
+  {
+    id: "credentials",
+    label: "Account details",
+    description: "Email and password",
+    icon: <KeyRound className="h-4 w-4" />
+  },
+  {
+    id: "verification",
+    label: "Verify email",
+    description: "Enter your code",
+    icon: <Mail className="h-4 w-4" />
+  }
+];
+
 const themeStorageKey = "project-board-theme";
 
 export default function ProjectBoard() {
@@ -684,12 +699,28 @@ function AuthPanel() {
           </div>
         </div>
 
-        {mode === "signup" && (
-          <div className="mb-4 grid grid-cols-2 gap-2">
-            <StepPill active={signupStep === "credentials"} icon={<KeyRound className="h-4 w-4" />} label="Account" />
-            <StepPill active={signupStep === "verification"} icon={<Mail className="h-4 w-4" />} label="Verify" />
-          </div>
-        )}
+        <div className="mb-4 grid grid-cols-2 gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+          {(["login", "signup"] as AuthMode[]).map((item) => (
+            <button
+              className={cn(
+                "rounded-md px-3 py-2 text-sm font-medium transition",
+                mode === item ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-950"
+              )}
+              key={item}
+              onClick={() => {
+                setMode(item);
+                setSignupStep("credentials");
+                setPendingEmail("");
+                setMessage(null);
+              }}
+              type="button"
+            >
+              {item === "login" ? "Log in" : "Sign up"}
+            </button>
+          ))}
+        </div>
+
+        {mode === "signup" && <SignupWizardSteps currentStep={signupStep} />}
 
         {isVerifyingSignup ? (
           <form className="space-y-3" onSubmit={handleVerifyEmail}>
@@ -739,7 +770,7 @@ function AuthPanel() {
                 disabled={!isSupabaseConfigured}
                 id="email"
                 onChange={(event) => setForm({ ...form, email: event.target.value })}
-                placeholder="maxwinterleinweber@gmail.com"
+                placeholder="you@company.com"
                 type="email"
                 value={form.email}
               />
@@ -815,16 +846,60 @@ function AuthPanel() {
   );
 }
 
-function StepPill({ active, icon, label }: { active: boolean; icon: ReactNode; label: string }) {
+function SignupWizardSteps({ currentStep }: { currentStep: SignupStep }) {
+  const currentIndex = signupSteps.findIndex((step) => step.id === currentStep);
+  const progress = currentIndex === signupSteps.length - 1 ? "w-full" : "w-1/2";
+
   return (
-    <div
-      className={cn(
-        "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium",
-        active ? "border-teal-200 bg-teal-50 text-teal-800" : "border-slate-200 bg-white text-slate-500"
-      )}
-    >
-      {icon}
-      {label}
+    <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+          Step {currentIndex + 1} of {signupSteps.length}
+        </p>
+        <p className="text-xs font-medium text-slate-500">
+          {signupSteps[currentIndex]?.label}
+        </p>
+      </div>
+
+      <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-slate-200">
+        <div className={cn("h-full rounded-full bg-teal-600 transition-all", progress)} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {signupSteps.map((step, index) => {
+          const active = index === currentIndex;
+          const complete = index < currentIndex;
+
+          return (
+            <div
+              className={cn(
+                "rounded-md border bg-white p-3 transition",
+                active || complete ? "border-teal-200 shadow-sm" : "border-slate-200"
+              )}
+              key={step.id}
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
+                    complete
+                      ? "border-teal-600 bg-teal-600 text-white"
+                      : active
+                        ? "border-teal-200 bg-teal-50 text-teal-700"
+                        : "border-slate-200 bg-slate-50 text-slate-500"
+                  )}
+                >
+                  {complete ? <Check className="h-3.5 w-3.5" /> : step.icon}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-slate-900">{step.label}</p>
+                  <p className="truncate text-xs text-slate-500">{step.description}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
