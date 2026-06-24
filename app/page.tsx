@@ -1,73 +1,38 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import type { Session, User } from "@supabase/supabase-js";
 import {
   Check,
   CirclePlus,
+  FolderKanban,
   GripVertical,
-  LayoutDashboard,
   Loader2,
-  Moon,
-  PanelLeftClose,
-  PanelLeftOpen,
+  LogOut,
   Plus,
   Search,
   Settings,
-  Sun,
+  ShieldCheck,
   Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { cardsTable, supabase } from "@/lib/supabase";
+import { cardsTable, isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import type { BoardCard, CardDraft, Status } from "@/types/board";
 
 const columns: Array<{ id: Status; title: string; accent: string }> = [
-  { id: "backlog", title: "Backlog", accent: "bg-slate-400" },
-  { id: "todo", title: "To do", accent: "bg-stone-500" },
-  { id: "in_progress", title: "In progress", accent: "bg-amber-600" },
-  { id: "review", title: "Review", accent: "bg-teal-700" },
-  { id: "done", title: "Done", accent: "bg-emerald-700" }
-];
-
-const starterCards: BoardCard[] = [
-  {
-    id: "11111111-1111-4111-8111-111111111111",
-    title: "Draft onboarding flow",
-    description: "Map the first-use path and define what a new teammate should see first.",
-    status: "backlog",
-    position: 0,
-    labels: ["Product", "Research"]
-  },
-  {
-    id: "22222222-2222-4222-8222-222222222222",
-    title: "Create launch checklist",
-    description: "Collect the final QA, copy, analytics, and handoff tasks in one place.",
-    status: "todo",
-    position: 0,
-    labels: ["Ops"]
-  },
-  {
-    id: "33333333-3333-4333-8333-333333333333",
-    title: "Build project board",
-    description: "Support cards, statuses, drag-and-drop movement, and persistence.",
-    status: "in_progress",
-    position: 0,
-    labels: ["Engineering"]
-  },
-  {
-    id: "44444444-4444-4444-8444-444444444444",
-    title: "Review Supabase schema",
-    description: "Confirm table policies, indexes, and environment variables before deploy.",
-    status: "review",
-    position: 0,
-    labels: ["Data"]
-  }
+  { id: "backlog", title: "Backlog", accent: "bg-slate-500" },
+  { id: "todo", title: "To do", accent: "bg-sky-500" },
+  { id: "in_progress", title: "In progress", accent: "bg-amber-500" },
+  { id: "review", title: "Review", accent: "bg-teal-600" },
+  { id: "done", title: "Done", accent: "bg-emerald-500" }
 ];
 
 const emptyDraft: CardDraft = {
@@ -76,47 +41,69 @@ const emptyDraft: CardDraft = {
   labels: ""
 };
 
-type Theme = "light" | "dark";
-type ActiveView = "board" | "settings";
+const emptyAuthForm = {
+  username: "",
+  password: ""
+};
+
+type AuthMode = "login" | "signup";
 
 export default function ProjectBoard() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof document === "undefined") {
-      return "dark";
-    }
-
-    return document.documentElement.classList.contains("dark") ? "dark" : "light";
-  });
-  const [cards, setCards] = useState<BoardCard[]>(starterCards);
+  const [session, setSession] = useState<Session | null>(null);
+  const [authLoading, setAuthLoading] = useState(isSupabaseConfigured);
+  const [cards, setCards] = useState<BoardCard[]>([]);
   const [draft, setDraft] = useState<CardDraft>(emptyDraft);
   const [draftStatus, setDraftStatus] = useState<Status>("todo");
   const [isNewCardOpen, setIsNewCardOpen] = useState(false);
-  const [activeView, setActiveView] = useState<ActiveView>("board");
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [pointerDraggedId, setPointerDraggedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    window.localStorage.setItem("project-board-theme", theme);
-  }, [theme]);
+    if (!supabase) {
+      return;
+    }
+
+    let active = true;
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (active) {
+        setSession(data.session);
+        setAuthLoading(false);
+      }
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     let ignore = false;
 
     async function loadCards() {
-      if (!supabase) {
+      if (!supabase || !session?.user) {
+        setCards([]);
         setLoading(false);
         return;
       }
 
+      setLoading(true);
+      setNotice(null);
+
       const { data, error } = await supabase
         .from(cardsTable)
         .select("*")
+        .eq("user_id", session.user.id)
         .order("status", { ascending: true })
         .order("position", { ascending: true });
 
@@ -125,9 +112,9 @@ export default function ProjectBoard() {
       }
 
       if (error) {
-        setNotice(`Supabase is configured, but cards could not be loaded: ${error.message}`);
-      } else if (data && data.length > 0) {
-        setCards(data as BoardCard[]);
+        setNotice(`Cards could not be loaded: ${error.message}`);
+      } else {
+        setCards((data ?? []) as BoardCard[]);
       }
 
       setLoading(false);
@@ -138,7 +125,7 @@ export default function ProjectBoard() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [session?.user]);
 
   const filteredCards = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -167,12 +154,13 @@ export default function ProjectBoard() {
   }, [filteredCards]);
 
   async function persistCards(nextCards: BoardCard[]) {
-    if (!supabase) {
+    if (!supabase || !session?.user) {
       return;
     }
 
     const rows = nextCards.map((card) => ({
       id: card.id,
+      user_id: session.user.id,
       title: card.title,
       description: card.description,
       status: card.status,
@@ -192,7 +180,7 @@ export default function ProjectBoard() {
 
     const title = draft.title.trim();
 
-    if (!title) {
+    if (!title || !session?.user) {
       return;
     }
 
@@ -200,6 +188,7 @@ export default function ProjectBoard() {
 
     const nextCard: BoardCard = {
       id: crypto.randomUUID(),
+      user_id: session.user.id,
       title,
       description: draft.description.trim(),
       status: draftStatus,
@@ -251,139 +240,96 @@ export default function ProjectBoard() {
     }
   }
 
+  async function handleSignOut() {
+    if (!supabase) {
+      return;
+    }
+
+    await supabase.auth.signOut();
+    setCards([]);
+    setNotice(null);
+  }
+
   const totalDone = cards.filter((card) => card.status === "done").length;
+
+  if (authLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-slate-950">
+        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm">
+          <Loader2 className="h-4 w-4 animate-spin text-teal-700" />
+          Loading workspace
+        </div>
+      </main>
+    );
+  }
+
+  if (!session) {
+    return <AuthPanel />;
+  }
 
   return (
     <main
-      className="min-h-screen bg-background text-foreground"
+      className="min-h-screen bg-slate-50 text-slate-950"
       onPointerUp={() => setPointerDraggedId(null)}
     >
-      <div
-        className={cn(
-          "grid min-h-screen w-full transition-[grid-template-columns] duration-300 ease-in-out motion-reduce:transition-none",
-          isSidebarCollapsed ? "lg:grid-cols-[88px_minmax(0,1fr)]" : "lg:grid-cols-[248px_minmax(0,1fr)]"
-        )}
-      >
-        <aside
-          className={cn(
-            "hidden min-h-screen overflow-hidden border-r border-border bg-card py-6 transition-[padding] duration-300 ease-in-out motion-reduce:transition-none lg:flex lg:flex-col",
-            isSidebarCollapsed ? "px-3" : "px-4"
-          )}
-        >
-          <div className={cn("flex items-center", isSidebarCollapsed ? "justify-center" : "gap-3")}>
-            {isSidebarCollapsed ? (
-              <Button
-                aria-label="Expand sidebar"
-                className="h-9 w-9 text-muted-foreground hover:text-foreground"
-                onClick={() => setIsSidebarCollapsed(false)}
-                size="icon"
-                title="Expand sidebar"
-                type="button"
-                variant="ghost"
-              >
-                <PanelLeftOpen className="h-4 w-4" />
-              </Button>
-            ) : (
-              <div className="flex w-full items-center justify-between gap-3">
-                <p className="min-w-0 truncate text-base font-semibold leading-6 text-foreground">
-                  Scryptic
-                </p>
-                <Button
-                  aria-label="Collapse sidebar"
-                  className="h-9 w-9 shrink-0 text-muted-foreground hover:text-foreground"
-                  onClick={() => setIsSidebarCollapsed(true)}
-                  size="icon"
-                  title="Collapse sidebar"
-                  type="button"
-                  variant="ghost"
-                >
-                  <PanelLeftClose className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
+      <div className="flex min-h-screen">
+        <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white px-4 py-5 lg:flex lg:flex-col">
+          <div className="flex items-center gap-2 px-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-950 text-white">
+              <FolderKanban className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-950">Project Board</p>
+              <p className="text-xs text-slate-500">{getUserDisplayName(session.user)}</p>
+            </div>
           </div>
 
           <nav className="mt-8 space-y-1">
-            <Button
-              aria-label="Project Board"
-              className={cn("w-full", isSidebarCollapsed ? "justify-center px-0" : "justify-start")}
-              onClick={() => setActiveView("board")}
-              title={isSidebarCollapsed ? "Project Board" : undefined}
-              type="button"
-              variant={activeView === "board" ? "secondary" : "ghost"}
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              <span className={sidebarLabelClassName(isSidebarCollapsed)}>Project Board</span>
-            </Button>
+            <SidebarItem active icon={<FolderKanban className="h-4 w-4" />} label="Projects" />
+            <SidebarItem icon={<Settings className="h-4 w-4" />} label="Settings" />
           </nav>
 
-          <nav className="mt-auto space-y-1 pt-8">
-            <Button
-              aria-label="Settings"
-              className={cn("w-full", isSidebarCollapsed ? "justify-center px-0" : "justify-start")}
-              onClick={() => setActiveView("settings")}
-              title={isSidebarCollapsed ? "Settings" : undefined}
-              type="button"
-              variant={activeView === "settings" ? "secondary" : "ghost"}
-            >
-              <Settings className="h-4 w-4" />
-              <span className={sidebarLabelClassName(isSidebarCollapsed)}>Settings</span>
-            </Button>
-          </nav>
-
-        </aside>
-
-        <section className="flex min-w-0 flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
-          <div className="flex gap-2 lg:hidden">
-            <Button
-              className="flex-1"
-              onClick={() => setActiveView("board")}
-              type="button"
-              variant={activeView === "board" ? "secondary" : "outline"}
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Board
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={() => setActiveView("settings")}
-              type="button"
-              variant={activeView === "settings" ? "secondary" : "outline"}
-            >
-              <Settings className="h-4 w-4" />
-              Settings
+          <div className="mt-auto space-y-3 border-t border-slate-200 pt-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="truncate text-sm font-medium text-slate-900">{getUserDisplayName(session.user)}</p>
+              <p className="truncate text-xs text-slate-500">{session.user.email}</p>
+            </div>
+            <Button className="w-full justify-start text-slate-600" onClick={handleSignOut} type="button" variant="ghost">
+              <LogOut className="h-4 w-4" />
+              Log out
             </Button>
           </div>
+        </aside>
 
-          {activeView === "board" ? (
-            <>
-          <header className="flex flex-col gap-4 border-b border-border pb-5 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-2xl">
-              <p className="text-sm font-medium text-teal-700">Project management</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
+        <section className="flex min-w-0 flex-1 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
+          <header className="mx-auto grid w-full max-w-[1200px] gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
+                Project management
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
                 Project Board
               </h1>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Prioritize launch work, review dependencies, and keep delivery moving across the team.
-              </p>
             </div>
 
-            <div className="flex flex-col gap-3 lg:min-w-[620px]">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="relative min-w-0 flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="search"
-                    className="pl-9"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search title, label, or description"
-                  />
+            <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+              <div className="flex min-h-[70px] flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
+                    <Search className="h-4 w-4 text-slate-500" />
+                    <input
+                      id="search"
+                      className="w-full border-0 bg-transparent text-sm outline-none"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Title, label, or description"
+                    />
+                  </div>
                 </div>
 
                 <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
                   <DialogTrigger asChild>
-                    <Button className="min-h-10 sm:min-w-36" type="button">
+                    <Button className="min-h-11 sm:min-w-36" type="button">
                       <Plus className="h-4 w-4" />
                       New card
                     </Button>
@@ -396,41 +342,35 @@ export default function ProjectBoard() {
                       </DialogTitle>
                     </DialogHeader>
 
-                    <form className="flex flex-col gap-4" onSubmit={handleCreateCard}>
-                      <div className="space-y-2">
-                        <Label htmlFor="card-title">Title</Label>
-                        <Input
-                          id="card-title"
-                          value={draft.title}
-                          onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-                          placeholder="Design pricing page"
-                        />
-                      </div>
+                    <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
+                      <Label htmlFor="card-title">Title</Label>
+                      <Input
+                        id="card-title"
+                        value={draft.title}
+                        onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                        placeholder="Design pricing page"
+                      />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="card-description">Description</Label>
-                        <Textarea
-                          id="card-description"
-                          className="resize-y"
-                          value={draft.description}
-                          onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-                          placeholder="Add context, acceptance criteria, or next steps"
-                        />
-                      </div>
+                      <Label htmlFor="card-description">Description</Label>
+                      <Textarea
+                        id="card-description"
+                        className="resize-y"
+                        value={draft.description}
+                        onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+                        placeholder="Add context, acceptance criteria, or next steps"
+                      />
 
-                      <div className="space-y-2">
-                        <Label htmlFor="card-labels">Labels</Label>
-                        <Input
-                          id="card-labels"
-                          value={draft.labels}
-                          onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
-                          placeholder="Design, Launch"
-                        />
-                      </div>
+                      <Label htmlFor="card-labels">Labels</Label>
+                      <Input
+                        id="card-labels"
+                        value={draft.labels}
+                        onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
+                        placeholder="Design, Launch"
+                      />
 
                       <StatusPicker value={draftStatus} onChange={setDraftStatus} />
 
-                      <Button className="mt-1 min-h-10" disabled={saving} type="submit">
+                      <Button className="mt-1 min-h-11" disabled={saving} type="submit">
                         {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                         Add card
                       </Button>
@@ -438,220 +378,346 @@ export default function ProjectBoard() {
                   </DialogContent>
                 </Dialog>
               </div>
+            </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Metric label="Cards" value={cards.length.toString()} />
-                <Metric label="Done" value={totalDone.toString()} />
-              </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Metric label="Cards" value={cards.length.toString()} />
+              <Metric label="Done" value={totalDone.toString()} />
             </div>
           </header>
 
-          <div className="flex flex-col gap-4">
+          <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm lg:hidden">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-slate-900">{getUserDisplayName(session.user)}</p>
+                <p className="truncate text-xs text-slate-500">{session.user.email}</p>
+              </div>
+              <Button onClick={handleSignOut} size="sm" type="button" variant="ghost">
+                <LogOut className="h-4 w-4" />
+                Log out
+              </Button>
+            </div>
+
             {notice && (
-              <Card className="border-amber-200 bg-amber-50 text-amber-950">
-                <CardContent className="p-3 text-sm">{notice}</CardContent>
-              </Card>
+              <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                {notice}
+              </p>
             )}
 
-            <section className="min-w-0 pb-4">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-5 2xl:gap-4">
-              {columns.map((column) => (
-                <Card
-                  key={column.id}
-                  className={cn(
-                    "min-w-0 transition",
-                    (pointerDraggedId || draggedId) && "ring-2 ring-ring/35"
-                  )}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    moveActiveCard(column.id);
-                  }}
-                  onPointerUpCapture={(event) => {
-                    if (pointerDraggedId) {
-                      event.stopPropagation();
+            <section className="pb-3">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+                {columns.map((column) => (
+                  <div
+                    key={column.id}
+                    className={`min-w-0 rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition ${
+                      pointerDraggedId || draggedId ? "ring-2 ring-teal-100" : ""
+                    }`}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => {
+                      event.preventDefault();
                       moveActiveCard(column.id);
-                    }
-                  }}
-                >
-                  <CardHeader className="flex-row items-center justify-between space-y-0 p-3">
-                    <div className="flex items-center gap-2">
-                      <span className={`h-2.5 w-2.5 rounded-full ${column.accent}`} />
-                      <CardTitle className="text-sm">
-                        {column.title}
-                      </CardTitle>
+                    }}
+                    onPointerUpCapture={(event) => {
+                      if (pointerDraggedId) {
+                        event.stopPropagation();
+                        moveActiveCard(column.id);
+                      }
+                    }}
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2.5 w-2.5 rounded-full ${column.accent}`} />
+                        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700">
+                          {column.title}
+                        </h2>
+                      </div>
+                      <Badge variant="secondary">
+                        {groupedCards[column.id].length}
+                      </Badge>
                     </div>
-                    <Badge variant="secondary">
-                      {groupedCards[column.id].length}
-                    </Badge>
-                  </CardHeader>
 
-                  <CardContent className="p-3 pt-0">
-                  <div className="flex min-h-[560px] flex-col gap-3 rounded-xl bg-muted p-2">
-                    {loading ? (
-                      <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border py-6 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading
-                      </div>
-                    ) : groupedCards[column.id].length === 0 ? (
-                      <div className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
-                        Drop cards here
-                      </div>
-                    ) : (
-                      groupedCards[column.id].map((card) => (
-                        <article
-                          key={card.id}
-                          draggable
-                          onDragStart={() => {
-                            setDraggedId(card.id);
-                            setPointerDraggedId(card.id);
-                          }}
-                          onDragEnd={() => {
-                            setDraggedId(null);
-                            setPointerDraggedId(null);
-                          }}
-                          onPointerDown={(event) => {
-                            if ((event.target as HTMLElement).closest("button")) {
-                              return;
-                            }
+                    <div className="flex min-h-[520px] flex-col gap-3 rounded-md bg-slate-50 p-2">
+                      {loading ? (
+                        <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 py-6 text-sm text-slate-500">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Loading
+                        </div>
+                      ) : groupedCards[column.id].length === 0 ? (
+                        <div className="rounded-md border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500">
+                          Drop cards here
+                        </div>
+                      ) : (
+                        groupedCards[column.id].map((card) => (
+                          <article
+                            key={card.id}
+                            draggable
+                            onDragStart={() => {
+                              setDraggedId(card.id);
+                              setPointerDraggedId(card.id);
+                            }}
+                            onDragEnd={() => {
+                              setDraggedId(null);
+                              setPointerDraggedId(null);
+                            }}
+                            onPointerDown={(event) => {
+                              if ((event.target as HTMLElement).closest("button")) {
+                                return;
+                              }
 
-                            setPointerDraggedId(card.id);
-                          }}
-                          className={`rounded-xl border border-border bg-card p-3 shadow-sm transition hover:border-input ${
-                            pointerDraggedId === card.id || draggedId === card.id
-                              ? "cursor-grabbing opacity-75"
-                              : "cursor-grab"
-                          }`}
-                        >
-                          <div className="mb-2 flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-2">
-                              <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                              <h3 className="text-sm font-semibold leading-5 text-foreground">
-                                {card.title}
-                              </h3>
-                            </div>
-                            <Button
-                              aria-label={`Delete ${card.title}`}
-                              className="text-muted-foreground hover:bg-rose-50 hover:text-rose-600"
-                              onClick={() => deleteCard(card.id)}
-                              onPointerDown={(event) => event.stopPropagation()}
-                              size="icon"
-                              type="button"
-                              variant="ghost"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-
-                          {card.description && (
-                            <p className="mb-3 text-sm leading-5 text-muted-foreground">{card.description}</p>
-                          )}
-
-                          <div className="flex flex-wrap gap-1.5">
-                            {card.labels.map((label) => (
-                              <Badge
-                                key={label}
-                                className="font-medium"
-                                variant="teal"
+                              setPointerDraggedId(card.id);
+                            }}
+                            className={`rounded-md border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md ${
+                              pointerDraggedId === card.id || draggedId === card.id
+                                ? "cursor-grabbing opacity-75"
+                                : "cursor-grab"
+                            }`}
+                          >
+                            <div className="mb-2 flex items-start justify-between gap-2">
+                              <div className="flex items-start gap-2">
+                                <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                                <h3 className="text-sm font-semibold leading-5 text-slate-950">
+                                  {card.title}
+                                </h3>
+                              </div>
+                              <Button
+                                aria-label={`Delete ${card.title}`}
+                                className="text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                                onClick={() => deleteCard(card.id)}
+                                onPointerDown={(event) => event.stopPropagation()}
+                                size="icon"
+                                type="button"
+                                variant="ghost"
                               >
-                                {label}
-                              </Badge>
-                            ))}
-                          </div>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
 
-                          {card.status === "done" && (
-                            <Badge className="mt-3 gap-1.5" variant="success">
-                              <Check className="h-3.5 w-3.5" />
-                              Complete
-                            </Badge>
-                          )}
-                        </article>
-                      ))
-                    )}
+                            {card.description && (
+                              <p className="mb-3 text-sm leading-5 text-slate-600">{card.description}</p>
+                            )}
+
+                            <div className="flex flex-wrap gap-1.5">
+                              {card.labels.map((label) => (
+                                <Badge
+                                  key={label}
+                                  className="font-medium"
+                                  variant="teal"
+                                >
+                                  {label}
+                                </Badge>
+                              ))}
+                            </div>
+
+                            {card.status === "done" && (
+                              <Badge className="mt-3 gap-1.5" variant="success">
+                                <Check className="h-3.5 w-3.5" />
+                                Complete
+                              </Badge>
+                            )}
+                          </article>
+                        ))
+                      )}
+                    </div>
                   </div>
-                  </CardContent>
-                </Card>
-              ))}
+                ))}
               </div>
             </section>
           </div>
-            </>
-          ) : (
-            <SettingsView
-              onThemeChange={setTheme}
-              theme={theme}
-            />
-          )}
         </section>
       </div>
     </main>
   );
 }
 
-function sidebarLabelClassName(isCollapsed: boolean) {
-  return cn(
-    "min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-in-out motion-reduce:transition-none",
-    isCollapsed ? "max-w-0 -translate-x-1 opacity-0" : "max-w-32 translate-x-0 opacity-100"
+function AuthPanel() {
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [form, setForm] = useState(emptyAuthForm);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function handlePasswordAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!supabase) {
+      setMessage("Add Supabase environment variables before signing in.");
+      return;
+    }
+
+    const username = normalizeUsername(form.username);
+    const password = form.password;
+
+    if (!username || password.length < 6) {
+      setMessage("Enter a username and a password of at least 6 characters.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    const email = usernameToAuthEmail(username);
+    const result =
+      mode === "signup"
+        ? await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                username
+              }
+            }
+          })
+        : await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+
+    setLoading(false);
+
+    if (result.error) {
+      setMessage(result.error.message);
+      return;
+    }
+
+    if (mode === "signup" && !result.data.session) {
+      setMessage("Account created. Check your Supabase email confirmation settings before logging in.");
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    if (!supabase) {
+      setMessage("Add Supabase environment variables before signing in.");
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+
+    if (error) {
+      setMessage(error.message);
+    }
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 text-slate-950">
+      <Card className="w-full max-w-md p-6 shadow-sm">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-950 text-white">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold tracking-normal text-slate-950">Project Board</h1>
+            <p className="text-sm text-slate-500">Sign in to manage your own cards.</p>
+          </div>
+        </div>
+
+        <div className="mb-4 grid grid-cols-2 gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+          {(["login", "signup"] as AuthMode[]).map((item) => (
+            <button
+              className={cn(
+                "rounded-md px-3 py-2 text-sm font-medium transition",
+                mode === item ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-950"
+              )}
+              key={item}
+              onClick={() => {
+                setMode(item);
+                setMessage(null);
+              }}
+              type="button"
+            >
+              {item === "login" ? "Log in" : "Sign up"}
+            </button>
+          ))}
+        </div>
+
+        <form className="space-y-3" onSubmit={handlePasswordAuth}>
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              autoCapitalize="none"
+              autoComplete="username"
+              disabled={!isSupabaseConfigured}
+              id="username"
+              onChange={(event) => setForm({ ...form, username: event.target.value })}
+              placeholder="alex"
+              value={form.username}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              disabled={!isSupabaseConfigured}
+              id="password"
+              onChange={(event) => setForm({ ...form, password: event.target.value })}
+              placeholder="Password"
+              type="password"
+              value={form.password}
+            />
+          </div>
+
+          <Button className="w-full" disabled={loading || !isSupabaseConfigured} type="submit">
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            {mode === "login" ? "Log in" : "Create account"}
+          </Button>
+        </form>
+
+        <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
+          <span className="h-px flex-1 bg-slate-200" />
+          or
+          <span className="h-px flex-1 bg-slate-200" />
+        </div>
+
+        <Button
+          className="w-full border border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+          disabled={!isSupabaseConfigured}
+          onClick={handleGoogleSignIn}
+          type="button"
+          variant="secondary"
+        >
+          Continue with Google
+        </Button>
+
+        {message && (
+          <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {message}
+          </p>
+        )}
+
+        {!isSupabaseConfigured && (
+          <p className="mt-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            Configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to enable auth.
+          </p>
+        )}
+      </Card>
+    </main>
   );
 }
 
-function SettingsView({
-  onThemeChange,
-  theme
+function SidebarItem({
+  active = false,
+  icon,
+  label
 }: {
-  onThemeChange: (theme: Theme) => void;
-  theme: Theme;
+  active?: boolean;
+  icon: ReactNode;
+  label: string;
 }) {
   return (
-    <>
-      <header className="border-b border-border pb-5">
-        <p className="text-sm font-medium text-teal-700">Workspace preferences</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
-          Settings
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Manage the workspace appearance and layout defaults for your project board.
-        </p>
-      </header>
-
-      <div className="max-w-3xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Appearance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-medium text-foreground">Theme</p>
-                <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                  Choose how the board should look on this device.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted p-1">
-                <Button
-                  className={cn(theme === "light" && "bg-card shadow-sm hover:bg-card")}
-                  onClick={() => onThemeChange("light")}
-                  type="button"
-                  variant={theme === "light" ? "outline" : "ghost"}
-                >
-                  <Sun className="h-4 w-4" />
-                  Light
-                </Button>
-                <Button
-                  className={cn(theme === "dark" && "bg-card shadow-sm hover:bg-card")}
-                  onClick={() => onThemeChange("dark")}
-                  type="button"
-                  variant={theme === "dark" ? "outline" : "ghost"}
-                >
-                  <Moon className="h-4 w-4" />
-                  Dark
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </>
+    <button
+      className={cn(
+        "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition",
+        active ? "bg-slate-100 text-slate-950" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+      )}
+      type="button"
+    >
+      {icon}
+      {label}
+    </button>
   );
 }
 
@@ -713,5 +779,22 @@ function normalizePositions(cards: BoardCard[]) {
     cards
       .filter((card) => card.status === column.id)
       .map((card, position) => ({ ...card, position }))
+  );
+}
+
+function normalizeUsername(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9._-]/g, "");
+}
+
+function usernameToAuthEmail(username: string) {
+  return `${username}@project-board.local`;
+}
+
+function getUserDisplayName(user: User) {
+  return (
+    (typeof user.user_metadata.username === "string" && user.user_metadata.username) ||
+    (typeof user.user_metadata.name === "string" && user.user_metadata.name) ||
+    user.email?.split("@")[0] ||
+    "Workspace"
   );
 }
