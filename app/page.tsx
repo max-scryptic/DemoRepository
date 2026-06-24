@@ -23,14 +23,6 @@ const columns: Array<{ id: Status; title: string; accent: string }> = [
 
 const starterCards: BoardCard[] = [
   {
-    id: "11111111-1111-4111-8111-111111111111",
-    title: "Draft onboarding flow",
-    description: "Map the first-use path and define what a new teammate should see first.",
-    status: "backlog",
-    position: 0,
-    labels: ["Product", "Research"]
-  },
-  {
     id: "22222222-2222-4222-8222-222222222222",
     title: "Create launch checklist",
     description: "Collect the final QA, copy, analytics, and handoff tasks in one place.",
