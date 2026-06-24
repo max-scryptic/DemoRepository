@@ -261,16 +261,27 @@ export default function ProjectBoard() {
     >
       <div
         className={cn(
-          "mx-auto grid min-h-screen max-w-[1600px]",
+          "mx-auto grid min-h-screen max-w-[1600px] transition-[grid-template-columns] duration-300 ease-in-out motion-reduce:transition-none",
           isSidebarCollapsed ? "lg:grid-cols-[88px_minmax(0,1fr)]" : "lg:grid-cols-[248px_minmax(0,1fr)]"
         )}
       >
-        <aside className="hidden border-r border-border bg-card px-4 py-6 lg:block">
+        <aside
+          className={cn(
+            "hidden overflow-hidden border-r border-border bg-card py-6 transition-[padding] duration-300 ease-in-out motion-reduce:transition-none lg:block",
+            isSidebarCollapsed ? "px-3" : "px-4"
+          )}
+        >
           <div className={cn("flex items-center", isSidebarCollapsed ? "justify-center" : "gap-3")}>
             <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-teal-50 text-teal-800">
               <Columns3 className="h-4 w-4" />
             </div>
-            <div className={cn(isSidebarCollapsed && "sr-only")}>
+            <div
+              className={cn(
+                "min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-in-out motion-reduce:transition-none",
+                isSidebarCollapsed ? "max-w-0 -translate-x-1 opacity-0" : "max-w-44 translate-x-0 opacity-100"
+              )}
+              aria-hidden={isSidebarCollapsed}
+            >
               <p className="text-sm font-semibold leading-5">GTM Workspace</p>
               <p className="text-xs text-muted-foreground">Project operations</p>
             </div>
@@ -286,7 +297,7 @@ export default function ProjectBoard() {
               variant={activeView === "board" ? "secondary" : "ghost"}
             >
               <LayoutDashboard className="h-4 w-4" />
-              <span className={cn(isSidebarCollapsed && "sr-only")}>Project Board</span>
+              <span className={sidebarLabelClassName(isSidebarCollapsed)}>Project Board</span>
             </Button>
             <Button
               aria-label="Settings"
@@ -297,7 +308,7 @@ export default function ProjectBoard() {
               variant={activeView === "settings" ? "secondary" : "ghost"}
             >
               <Settings className="h-4 w-4" />
-              <span className={cn(isSidebarCollapsed && "sr-only")}>Settings</span>
+              <span className={sidebarLabelClassName(isSidebarCollapsed)}>Settings</span>
             </Button>
           </nav>
 
@@ -311,7 +322,7 @@ export default function ProjectBoard() {
               variant="outline"
             >
               {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-              <span className={cn(isSidebarCollapsed && "sr-only")}>Collapse</span>
+              <span className={sidebarLabelClassName(isSidebarCollapsed)}>Collapse</span>
             </Button>
           </div>
         </aside>
@@ -572,6 +583,13 @@ export default function ProjectBoard() {
         </section>
       </div>
     </main>
+  );
+}
+
+function sidebarLabelClassName(isCollapsed: boolean) {
+  return cn(
+    "min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-in-out motion-reduce:transition-none",
+    isCollapsed ? "max-w-0 -translate-x-1 opacity-0" : "max-w-32 translate-x-0 opacity-100"
   );
 }
 
