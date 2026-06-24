@@ -460,7 +460,7 @@ export default function ProjectBoard() {
                   key={column.id}
                   className={cn(
                     "min-w-0 transition",
-                    (pointerDraggedId || draggedId) && "ring-2 ring-teal-100"
+                    (pointerDraggedId || draggedId) && "ring-2 ring-ring/35"
                   )}
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => {
@@ -517,7 +517,7 @@ export default function ProjectBoard() {
 
                             setPointerDraggedId(card.id);
                           }}
-                          className={`rounded-xl border border-border bg-card p-3 shadow-sm transition hover:border-slate-300 ${
+                          className={`rounded-xl border border-border bg-card p-3 shadow-sm transition hover:border-input ${
                             pointerDraggedId === card.id || draggedId === card.id
                               ? "cursor-grabbing opacity-75"
                               : "cursor-grab"
