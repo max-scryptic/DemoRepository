@@ -8,10 +8,8 @@ import {
   CirclePlus,
   FolderKanban,
   GripVertical,
-  KeyRound,
   Loader2,
   LogOut,
-  Mail,
   Plus,
   Search,
   Settings,
@@ -37,28 +35,16 @@ const columns: Array<{ id: Status; title: string; accent: string }> = [
   { id: "done", title: "Done", accent: "bg-emerald-500" }
 ];
 
-const starterCards: BoardCard[] = [
-  {
-    id: "22222222-2222-4222-8222-222222222222",
-    title: "Create launch checklist",
-    description: "Collect the final QA, copy, analytics, and handoff tasks in one place.",
-    status: "todo",
-    position: 0,
-    labels: ["Ops"]
-  },
-  {
-    id: "credentials",
-    label: "Account details",
-    description: "Email and password",
-    icon: <KeyRound className="h-4 w-4" />
-  },
-  {
-    id: "verification",
-    label: "Verify email",
-    description: "Open the email link",
-    icon: <Mail className="h-4 w-4" />
-  }
-];
+const emptyDraft: CardDraft = {
+  title: "",
+  description: "",
+  labels: ""
+};
+
+const emptyAuthForm = {
+  email: "",
+  password: ""
+};
 
 const themeStorageKey = "project-board-theme";
 
@@ -544,21 +530,12 @@ export default function ProjectBoard() {
 }
 
 function AuthPanel() {
-  const [mode, setMode] = useState<AuthMode>("login");
   const [form, setForm] = useState(emptyAuthForm);
-  const [signupStep, setSignupStep] = useState<SignupStep>("credentials");
   const [pendingEmail, setPendingEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const passwordStrength = useMemo(() => getPasswordStrength(form.password), [form.password]);
-  const isVerifyingSignup = mode === "signup" && signupStep === "verification";
-
-  function switchAuthMode(nextMode: AuthMode) {
-    setMode(nextMode);
-    setSignupStep("credentials");
-    setPendingEmail("");
-    setMessage(null);
-  }
+  const isAwaitingConfirmation = pendingEmail.length > 0;
 
   async function handlePasswordAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -576,7 +553,7 @@ function AuthPanel() {
       return;
     }
 
-    if (mode === "signup" && !passwordStrength.isStrong) {
+    if (!passwordStrength.isStrong) {
       setMessage("Choose a stronger password before creating your account.");
       return;
     }
@@ -584,19 +561,13 @@ function AuthPanel() {
     setLoading(true);
     setMessage(null);
 
-    const result =
-      mode === "signup"
-        ? await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              emailRedirectTo: window.location.origin
-            }
-          })
-        : await supabase.auth.signInWithPassword({
-            email,
-            password
-          });
+    const result = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin
+      }
+    });
 
     setLoading(false);
 
@@ -605,19 +576,13 @@ function AuthPanel() {
       return;
     }
 
-    if (mode === "signup") {
-      applyLightThemePreference();
-    }
-
-    if (mode === "signup") {
-      setPendingEmail(email);
-      setSignupStep("verification");
-      setMessage(
-        result.data.session
-          ? "Account created. Email confirmations appear to be disabled in Supabase, so you are already signed in."
-          : "We sent a confirmation email. Open the link in that email to finish creating your account."
-      );
-    }
+    applyLightThemePreference();
+    setPendingEmail(email);
+    setMessage(
+      result.data.session
+        ? "Account created. Email confirmations appear to be disabled in Supabase, so you are already signed in."
+        : "We sent a confirmation email. Open the link in that email to finish creating your account."
+    );
   }
 
   async function handleResendConfirmationEmail() {
@@ -660,9 +625,7 @@ function AuthPanel() {
       return;
     }
 
-    if (mode === "signup") {
-      applyLightThemePreference();
-    }
+    applyLightThemePreference();
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -685,34 +648,11 @@ function AuthPanel() {
           </div>
           <div>
             <h1 className="text-xl font-semibold tracking-normal text-slate-950">Project Board</h1>
-            <p className="text-sm text-slate-500">Sign in to manage your own cards.</p>
+            <p className="text-sm text-slate-500">Create an account to manage your own cards.</p>
           </div>
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
-          {(["login", "signup"] as AuthMode[]).map((item) => (
-            <button
-              className={cn(
-                "rounded-md px-3 py-2 text-sm font-medium transition",
-                mode === item ? "bg-white text-slate-950 shadow-sm" : "text-slate-600 hover:text-slate-950"
-              )}
-              key={item}
-              onClick={() => {
-                setMode(item);
-                setSignupStep("credentials");
-                setPendingEmail("");
-                setMessage(null);
-              }}
-              type="button"
-            >
-              {item === "login" ? "Log in" : "Sign up"}
-            </button>
-          ))}
-        </div>
-
-        {mode === "signup" && <SignupWizardSteps currentStep={signupStep} />}
-
-        {signupStep === "verification" && mode === "signup" ? (
+        {isAwaitingConfirmation ? (
           <div className="space-y-3">
             <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
               Confirmation email sent to{" "}
@@ -738,7 +678,7 @@ function AuthPanel() {
               className="w-full"
               disabled={loading}
               onClick={() => {
-                setSignupStep("credentials");
+                setPendingEmail("");
                 setMessage(null);
               }}
               type="button"
@@ -766,7 +706,7 @@ function AuthPanel() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                autoComplete="new-password"
                 disabled={!isSupabaseConfigured}
                 id="password"
                 onChange={(event) => setForm({ ...form, password: event.target.value })}
@@ -776,16 +716,16 @@ function AuthPanel() {
               />
             </div>
 
-            {mode === "signup" && <PasswordStrengthMeter strength={passwordStrength} />}
+            <PasswordStrengthMeter strength={passwordStrength} />
 
             <Button className="w-full" disabled={loading || !isSupabaseConfigured} type="submit">
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {mode === "login" ? "Log in" : "Create account"}
+              Create account
             </Button>
           </form>
         )}
 
-        {!isVerifyingSignup && (
+        {!isAwaitingConfirmation && (
           <>
             <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
               <span className="h-px flex-1 bg-slate-200" />
@@ -806,17 +746,6 @@ function AuthPanel() {
           </>
         )}
 
-        <p className="mt-5 border-t border-slate-200 pt-4 text-center text-sm text-slate-600">
-          {mode === "login" ? "Need to create an account?" : "Already have an account?"}{" "}
-          <button
-            className="font-medium text-slate-950 underline-offset-4 hover:underline"
-            onClick={() => switchAuthMode(mode === "login" ? "signup" : "login")}
-            type="button"
-          >
-            {mode === "login" ? "Sign up" : "Sign in"}
-          </button>
-        </p>
-
         {message && (
           <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
             {message}
@@ -830,64 +759,6 @@ function AuthPanel() {
         )}
       </Card>
     </main>
-  );
-}
-
-function SignupWizardSteps({ currentStep }: { currentStep: SignupStep }) {
-  const currentIndex = signupSteps.findIndex((step) => step.id === currentStep);
-  const progress = currentIndex === signupSteps.length - 1 ? "w-full" : "w-1/2";
-
-  return (
-    <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
-          Step {currentIndex + 1} of {signupSteps.length}
-        </p>
-        <p className="text-xs font-medium text-slate-500">
-          {signupSteps[currentIndex]?.label}
-        </p>
-      </div>
-
-      <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-slate-200">
-        <div className={cn("h-full rounded-full bg-teal-600 transition-all", progress)} />
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        {signupSteps.map((step, index) => {
-          const active = index === currentIndex;
-          const complete = index < currentIndex;
-
-          return (
-            <div
-              className={cn(
-                "rounded-md border bg-white p-3 transition",
-                active || complete ? "border-teal-200 shadow-sm" : "border-slate-200"
-              )}
-              key={step.id}
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className={cn(
-                    "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
-                    complete
-                      ? "border-teal-600 bg-teal-600 text-white"
-                      : active
-                        ? "border-teal-200 bg-teal-50 text-teal-700"
-                        : "border-slate-200 bg-slate-50 text-slate-500"
-                  )}
-                >
-                  {complete ? <Check className="h-3.5 w-3.5" /> : step.icon}
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">{step.label}</p>
-                  <p className="truncate text-xs text-slate-500">{step.description}</p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
   );
 }
 
