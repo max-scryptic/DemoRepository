@@ -48,6 +48,8 @@ const emptyAuthForm = {
 
 type AuthMode = "login" | "signup";
 
+const themeStorageKey = "project-board-theme";
+
 export default function ProjectBoard() {
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(isSupabaseConfigured);
@@ -578,6 +580,10 @@ function AuthPanel() {
       return;
     }
 
+    if (mode === "signup") {
+      applyLightThemePreference();
+    }
+
     if (mode === "signup" && !result.data.session) {
       setMessage("Account created. Check your Supabase email confirmation settings before logging in.");
     }
@@ -587,6 +593,10 @@ function AuthPanel() {
     if (!supabase) {
       setMessage("Add Supabase environment variables before signing in.");
       return;
+    }
+
+    if (mode === "signup") {
+      applyLightThemePreference();
     }
 
     const { error } = await supabase.auth.signInWithOAuth({
@@ -679,6 +689,7 @@ function AuthPanel() {
           type="button"
           variant="secondary"
         >
+          <GoogleLogo className="h-4 w-4" />
           Continue with Google
         </Button>
 
@@ -696,6 +707,34 @@ function AuthPanel() {
       </Card>
     </main>
   );
+}
+
+function GoogleLogo({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={className} viewBox="0 0 24 24">
+      <path
+        d="M21.6 12.23c0-.75-.07-1.47-.2-2.16H12v4.09h5.38a4.6 4.6 0 0 1-2 3.01v2.5h3.24c1.89-1.74 2.98-4.31 2.98-7.44Z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 22c2.7 0 4.96-.9 6.62-2.43l-3.24-2.5c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.07v2.58A10 10 0 0 0 12 22Z"
+        fill="#34A853"
+      />
+      <path
+        d="M6.41 13.91a6.01 6.01 0 0 1 0-3.82V7.51H3.07a10 10 0 0 0 0 8.98l3.34-2.58Z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 5.97c1.47 0 2.78.5 3.82 1.49l2.87-2.87C16.95 2.97 14.69 2 12 2a10 10 0 0 0-8.93 5.51l3.34 2.58C7.2 7.73 9.4 5.97 12 5.97Z"
+        fill="#EA4335"
+      />
+    </svg>
+  );
+}
+
+function applyLightThemePreference() {
+  window.localStorage.setItem(themeStorageKey, "light");
+  document.documentElement.classList.remove("dark");
 }
 
 function SidebarItem({

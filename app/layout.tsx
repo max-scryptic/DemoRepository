@@ -12,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html className="dark" lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -20,10 +20,10 @@ export default function RootLayout({
 (() => {
   try {
     const savedTheme = window.localStorage.getItem("project-board-theme");
-    const useDark = savedTheme ? savedTheme === "dark" : true;
+    const useDark = savedTheme === "dark";
     document.documentElement.classList.toggle("dark", useDark);
   } catch {
-    document.documentElement.classList.add("dark");
+    document.documentElement.classList.remove("dark");
   }
 })();
             `.trim()
