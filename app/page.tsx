@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +55,8 @@ export default function ProjectBoard() {
   const [draft, setDraft] = useState<CardDraft>(emptyDraft);
   const [draftStatus, setDraftStatus] = useState<Status>("todo");
   const [isNewCardOpen, setIsNewCardOpen] = useState(false);
+  const [activeView, setActiveView] = useState<ActiveView>("board");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [pointerDraggedId, setPointerDraggedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -723,9 +725,9 @@ function SidebarItem({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <Card className="px-4 py-3 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-slate-950">{value}</p>
+    <Card className="rounded-xl px-4 py-3">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-foreground">{value}</p>
     </Card>
   );
 }
@@ -742,30 +744,31 @@ function StatusPicker({
       <Label id="card-status-label">Status</Label>
       <div
         aria-labelledby="card-status-label"
-        className="grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1.5"
+        className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-muted p-1.5"
         role="radiogroup"
       >
         {columns.map((column) => {
           const selected = value === column.id;
 
           return (
-            <button
+            <Button
               aria-checked={selected}
               className={cn(
-                "flex min-h-10 items-center gap-2 rounded-md border px-3 py-2 text-left text-sm font-medium transition",
+                "min-h-10 justify-start px-3",
                 selected
-                  ? "border-slate-300 bg-white text-slate-950 shadow-sm"
-                  : "border-transparent text-slate-600 hover:bg-white/70 hover:text-slate-950"
+                  ? "border-border bg-card text-foreground shadow-sm"
+                  : "border-transparent text-muted-foreground"
               )}
               key={column.id}
               onClick={() => onChange(column.id)}
               role="radio"
               type="button"
+              variant={selected ? "outline" : "ghost"}
             >
               <span className={cn("h-2.5 w-2.5 rounded-full", column.accent)} />
               <span className="truncate">{column.title}</span>
               {selected && <Check className="ml-auto h-4 w-4 text-teal-700" />}
-            </button>
+            </Button>
           );
         })}
       </div>

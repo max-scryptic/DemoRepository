@@ -4,8 +4,45 @@
 
 :root {
   color-scheme: light;
-  background: #f6f7f9;
-  color: #111827;
+  --background: 210 20% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --muted: 210 20% 96%;
+  --muted-foreground: 215 16% 47%;
+  --border: 214 18% 88%;
+  --input: 214 18% 88%;
+  --ring: 164 75% 27%;
+  --primary: 164 75% 27%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 20% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --radius: 0.75rem;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.dark {
+  color-scheme: dark;
+  --background: 222 32% 7%;
+  --foreground: 210 24% 92%;
+  --card: 222 28% 10%;
+  --card-foreground: 210 24% 92%;
+  --muted: 222 24% 14%;
+  --muted-foreground: 215 16% 68%;
+  --border: 222 18% 20%;
+  --input: 222 18% 22%;
+  --ring: 164 72% 35%;
+  --primary: 164 72% 35%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 222 24% 14%;
+  --secondary-foreground: 210 24% 92%;
+  --destructive: 0 62% 45%;
+  --destructive-foreground: 0 0% 100%;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
 }
 
 * {
@@ -31,6 +68,6 @@ button {
 }
 
 ::selection {
-  background: #111827;
-  color: #ffffff;
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
 }
