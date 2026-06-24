@@ -260,13 +260,13 @@ export default function ProjectBoard() {
     >
       <div
         className={cn(
-          "mx-auto grid min-h-screen max-w-[1600px] transition-[grid-template-columns] duration-300 ease-in-out motion-reduce:transition-none",
+          "grid min-h-screen w-full transition-[grid-template-columns] duration-300 ease-in-out motion-reduce:transition-none",
           isSidebarCollapsed ? "lg:grid-cols-[88px_minmax(0,1fr)]" : "lg:grid-cols-[248px_minmax(0,1fr)]"
         )}
       >
         <aside
           className={cn(
-            "hidden overflow-hidden border-r border-border bg-card py-6 transition-[padding] duration-300 ease-in-out motion-reduce:transition-none lg:block",
+            "hidden min-h-screen overflow-hidden border-r border-border bg-card py-6 transition-[padding] duration-300 ease-in-out motion-reduce:transition-none lg:flex lg:flex-col",
             isSidebarCollapsed ? "px-3" : "px-4"
           )}
         >
@@ -315,6 +315,9 @@ export default function ProjectBoard() {
               <LayoutDashboard className="h-4 w-4" />
               <span className={sidebarLabelClassName(isSidebarCollapsed)}>Project Board</span>
             </Button>
+          </nav>
+
+          <nav className="mt-auto space-y-1 pt-8">
             <Button
               aria-label="Settings"
               className={cn("w-full", isSidebarCollapsed ? "justify-center px-0" : "justify-start")}
@@ -330,7 +333,7 @@ export default function ProjectBoard() {
 
         </aside>
 
-        <section className="flex min-w-0 flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
+        <section className="flex min-w-0 flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8 xl:px-10 2xl:px-12">
           <div className="flex gap-2 lg:hidden">
             <Button
               className="flex-1"
@@ -450,8 +453,8 @@ export default function ProjectBoard() {
               </Card>
             )}
 
-            <section className="pb-4">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+            <section className="min-w-0 pb-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-5 2xl:gap-4">
               {columns.map((column) => (
                 <Card
                   key={column.id}
