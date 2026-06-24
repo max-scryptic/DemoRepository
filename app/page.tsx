@@ -557,6 +557,14 @@ function AuthPanel() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const passwordStrength = useMemo(() => getPasswordStrength(form.password), [form.password]);
+  const isVerifyingSignup = mode === "signup" && signupStep === "verification";
+
+  function switchAuthMode(nextMode: AuthMode) {
+    setMode(nextMode);
+    setSignupStep("credentials");
+    setPendingEmail("");
+    setMessage(null);
+  }
 
   async function handlePasswordAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -783,22 +791,37 @@ function AuthPanel() {
           </form>
         )}
 
-        <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
-          <span className="h-px flex-1 bg-slate-200" />
-          or
-          <span className="h-px flex-1 bg-slate-200" />
-        </div>
+        {!isVerifyingSignup && (
+          <>
+            <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
+              <span className="h-px flex-1 bg-slate-200" />
+              or
+              <span className="h-px flex-1 bg-slate-200" />
+            </div>
 
-        <Button
-          className="w-full border border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
-          disabled={!isSupabaseConfigured}
-          onClick={handleGoogleSignIn}
-          type="button"
-          variant="secondary"
-        >
-          <GoogleLogo className="h-4 w-4" />
-          Continue with Google
-        </Button>
+            <Button
+              className="w-full border border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+              disabled={!isSupabaseConfigured}
+              onClick={handleGoogleSignIn}
+              type="button"
+              variant="secondary"
+            >
+              <GoogleLogo className="h-4 w-4" />
+              Continue with Google
+            </Button>
+          </>
+        )}
+
+        <p className="mt-5 border-t border-slate-200 pt-4 text-center text-sm text-slate-600">
+          {mode === "login" ? "Need to create an account?" : "Already have an account?"}{" "}
+          <button
+            className="font-medium text-slate-950 underline-offset-4 hover:underline"
+            onClick={() => switchAuthMode(mode === "login" ? "signup" : "login")}
+            type="button"
+          >
+            {mode === "login" ? "Sign up" : "Sign in"}
+          </button>
+        </p>
 
         {message && (
           <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
