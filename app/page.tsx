@@ -54,6 +54,11 @@ const emptyAuthForm = {
 type AuthMode = "signup" | "login" | "forgot-password" | "update-password";
 type AuthMessageTone = "success" | "warning" | "error";
 type ActiveView = "board" | "settings";
+type AuthRedirectState = {
+  message?: string;
+  mode: Extract<AuthMode, "forgot-password" | "update-password">;
+  tone?: AuthMessageTone;
+};
 type PasswordStrength = {
   checks: Array<{ label: string; met: boolean }>;
   isStrong: boolean;
