@@ -73,11 +73,21 @@ export default function ProjectBoard() {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isPasswordRecoveryRedirect()) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setAuthMode("update-password"), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
     if (!supabase) {
       return;
     }
 
     const supabaseClient = supabase;
+    const isRecoveryRedirect = isPasswordRecoveryRedirect();
     let ignore = false;
 
     async function loadSession() {
@@ -91,6 +101,10 @@ export default function ProjectBoard() {
         setNotice(`Session could not be loaded: ${error.message}`);
       } else {
         setSession(data.session);
+        if (isRecoveryRedirect) {
+          setAuthMode(data.session ? "update-password" : "forgot-password");
+          clearAuthRedirectUrl();
+        }
       }
 
       setAuthLoading(false);
@@ -106,6 +120,7 @@ export default function ProjectBoard() {
 
       if (event === "PASSWORD_RECOVERY") {
         setAuthMode("update-password");
+        clearAuthRedirectUrl();
       }
     });
 
@@ -662,7 +677,7 @@ function AuthPanel({
     setMessage(null);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin
+      redirectTo: getAuthRedirectUrl("update-password")
     });
 
     setLoading(false);
@@ -1147,6 +1162,39 @@ function normalizePositions(cards: BoardCard[]) {
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function getAuthRedirectUrl(mode: "update-password") {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.set("auth", mode);
+  url.hash = "";
+  return url.toString();
+}
+
+function isPasswordRecoveryRedirect() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const url = new URL(window.location.href);
+  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+
+  return url.searchParams.get("auth") === "update-password" || hashParams.get("type") === "recovery";
+}
+
+function clearAuthRedirectUrl() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.delete("auth");
+  url.hash = "";
+  window.history.replaceState({}, document.title, url.toString());
 }
 
 function isAlreadyRegisteredError(message: string) {
