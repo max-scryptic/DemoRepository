@@ -324,8 +324,12 @@ export default function ProjectBoard() {
     const nextCards = normalizePositions(cards.filter((card) => card.id !== cardId));
     setCards(nextCards);
 
-    if (supabase) {
-      const { error } = await supabase.from(cardsTable).delete().eq("id", cardId);
+    if (supabase && session?.user) {
+      const { error } = await supabase
+        .from(cardsTable)
+        .delete()
+        .eq("id", cardId)
+        .eq("user_id", session.user.id);
       if (error) {
         setNotice(`The card was removed locally, but Supabase could not delete it: ${error.message}`);
       }
