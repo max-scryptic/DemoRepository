@@ -1,11 +1,13 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import {
   AlertCircle,
   Check,
   CirclePlus,
+  FolderKanban,
   GripVertical,
   KeyRound,
   Loader2,
@@ -13,6 +15,7 @@ import {
   Mail,
   Plus,
   Search,
+  Settings,
   ShieldCheck,
   Trash2
 } from "lucide-react";
@@ -50,6 +53,7 @@ const emptyAuthForm = {
 
 type AuthMode = "signup" | "login" | "forgot-password" | "update-password";
 type AuthMessageTone = "success" | "warning" | "error";
+type ActiveView = "board" | "settings";
 type PasswordStrength = {
   checks: Array<{ label: string; met: boolean }>;
   isStrong: boolean;
@@ -65,6 +69,7 @@ export default function ProjectBoard() {
   const [draft, setDraft] = useState<CardDraft>(emptyDraft);
   const [draftStatus, setDraftStatus] = useState<Status>("todo");
   const [isNewCardOpen, setIsNewCardOpen] = useState(false);
+  const [activeView, setActiveView] = useState<ActiveView>("board");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [pointerDraggedId, setPointerDraggedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -320,227 +325,406 @@ export default function ProjectBoard() {
 
   return (
     <main
-      className="min-h-screen bg-slate-50 px-4 py-5 text-slate-950 sm:px-6 lg:px-8"
+      className="min-h-screen bg-slate-50 text-slate-950"
       onPointerUp={() => setPointerDraggedId(null)}
     >
-      <section className="mx-auto flex max-w-[1200px] flex-col gap-5">
-        <header className="grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
-              Project management
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
-              Project Board
-            </h1>
-            <p className="mt-2 truncate text-sm text-slate-500">
-              {getUserDisplayName(session.user)} · {session.user.email}
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-            <div className="flex min-h-[70px] flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
-                  <Search className="h-4 w-4 text-slate-500" />
-                  <input
-                    id="search"
-                    className="w-full border-0 bg-transparent text-sm outline-none"
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Title, label, or description"
-                    value={query}
-                  />
-                </div>
-              </div>
-
-              <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
-                <DialogTrigger asChild>
-                  <Button className="min-h-11 sm:min-w-36" type="button">
-                    <Plus className="h-4 w-4" />
-                    New card
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <CirclePlus className="h-5 w-5 text-teal-700" />
-                      New card
-                    </DialogTitle>
-                  </DialogHeader>
-
-                  <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
-                    <Label htmlFor="card-title">Title</Label>
-                    <Input
-                      id="card-title"
-                      onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-                      placeholder="Design pricing page"
-                      value={draft.title}
-                    />
-
-                    <Label htmlFor="card-description">Description</Label>
-                    <Textarea
-                      id="card-description"
-                      className="resize-y"
-                      onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-                      placeholder="Add context, acceptance criteria, or next steps"
-                      value={draft.description}
-                    />
-
-                    <Label htmlFor="card-labels">Labels</Label>
-                    <Input
-                      id="card-labels"
-                      onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
-                      placeholder="Design, Launch"
-                      value={draft.labels}
-                    />
-
-                    <StatusPicker value={draftStatus} onChange={setDraftStatus} />
-
-                    <Button className="mt-1 min-h-11" disabled={saving} type="submit">
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                      Add card
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
-
-              <Button
-                aria-label="Sign out"
-                className="min-h-11 sm:w-11"
-                disabled={authLoading}
-                onClick={handleSignOut}
-                size="icon"
-                type="button"
-                variant="secondary"
-              >
-                {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-              </Button>
+      <div className="flex min-h-screen">
+        <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white px-4 py-5 lg:flex lg:flex-col">
+          <div className="flex items-center gap-2 px-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-950 text-white">
+              <FolderKanban className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-950">Project Board</p>
+              <p className="truncate text-xs text-slate-500">{getUserDisplayName(session.user)}</p>
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Metric label="Cards" value={cards.length.toString()} />
-            <Metric label="Done" value={totalDone.toString()} />
+          <nav className="mt-8 space-y-1">
+            <SidebarItem
+              active={activeView === "board"}
+              icon={<FolderKanban className="h-4 w-4" />}
+              label="Projects"
+              onClick={() => setActiveView("board")}
+            />
+            <SidebarItem
+              active={activeView === "settings"}
+              icon={<Settings className="h-4 w-4" />}
+              label="Settings"
+              onClick={() => setActiveView("settings")}
+            />
+          </nav>
+
+          <div className="mt-auto space-y-3 border-t border-slate-200 pt-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="truncate text-sm font-medium text-slate-900">{getUserDisplayName(session.user)}</p>
+              <p className="truncate text-xs text-slate-500">{session.user.email}</p>
+            </div>
+            <Button
+              className="w-full justify-start text-slate-600"
+              disabled={authLoading}
+              onClick={handleSignOut}
+              type="button"
+              variant="ghost"
+            >
+              {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+              Log out
+            </Button>
           </div>
-        </header>
+        </aside>
 
-        {notice && (
-          <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            {notice}
-          </p>
-        )}
+        <section className="flex min-w-0 flex-1 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 gap-2 lg:hidden">
+            <Button
+              onClick={() => setActiveView("board")}
+              type="button"
+              variant={activeView === "board" ? "secondary" : "outline"}
+            >
+              <FolderKanban className="h-4 w-4" />
+              Board
+            </Button>
+            <Button
+              onClick={() => setActiveView("settings")}
+              type="button"
+              variant={activeView === "settings" ? "secondary" : "outline"}
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Button>
+          </div>
 
-        <section className="pb-3">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-            {columns.map((column) => (
-              <div
-                key={column.id}
-                className={`min-w-0 rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition ${
-                  pointerDraggedId || draggedId ? "ring-2 ring-teal-100" : ""
-                }`}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={(event) => {
-                  event.preventDefault();
-                  moveActiveCard(column.id);
-                }}
-                onPointerUpCapture={(event) => {
-                  if (pointerDraggedId) {
-                    event.stopPropagation();
-                    moveActiveCard(column.id);
-                  }
-                }}
-              >
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className={`h-2.5 w-2.5 rounded-full ${column.accent}`} />
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700">
-                      {column.title}
-                    </h2>
-                  </div>
-                  <Badge variant="secondary">{groupedCards[column.id].length}</Badge>
+          {activeView === "settings" ? (
+            <SettingsView
+              cardsCount={cards.length}
+              doneCount={totalDone}
+              email={session.user.email ?? ""}
+              onSignOut={handleSignOut}
+              signOutLoading={authLoading}
+              userName={getUserDisplayName(session.user)}
+            />
+          ) : (
+            <>
+              <header className="mx-auto grid w-full max-w-[1200px] gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
+                    Project management
+                  </p>
+                  <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
+                    Project Board
+                  </h1>
+                  <p className="mt-2 truncate text-sm text-slate-500">
+                    {getUserDisplayName(session.user)} · {session.user.email}
+                  </p>
                 </div>
 
-                <div className="flex min-h-[520px] flex-col gap-3 rounded-md bg-slate-50 p-2">
-                  {loading ? (
-                    <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 py-6 text-sm text-slate-500">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading
+                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                  <div className="flex min-h-[70px] flex-col gap-3 sm:flex-row sm:items-center">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
+                        <Search className="h-4 w-4 text-slate-500" />
+                        <input
+                          id="search"
+                          className="w-full border-0 bg-transparent text-sm outline-none"
+                          onChange={(event) => setQuery(event.target.value)}
+                          placeholder="Title, label, or description"
+                          value={query}
+                        />
+                      </div>
                     </div>
-                  ) : groupedCards[column.id].length === 0 ? (
-                    <div className="rounded-md border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500">
-                      Drop cards here
-                    </div>
-                  ) : (
-                    groupedCards[column.id].map((card) => (
-                      <article
-                        key={card.id}
-                        draggable
-                        className={`rounded-md border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md ${
-                          pointerDraggedId === card.id || draggedId === card.id
-                            ? "cursor-grabbing opacity-75"
-                            : "cursor-grab"
-                        }`}
-                        onDragEnd={() => {
-                          setDraggedId(null);
-                          setPointerDraggedId(null);
-                        }}
-                        onDragStart={() => {
-                          setDraggedId(card.id);
-                          setPointerDraggedId(card.id);
-                        }}
-                        onPointerDown={(event) => {
-                          if ((event.target as HTMLElement).closest("button")) {
-                            return;
-                          }
 
-                          setPointerDraggedId(card.id);
+                    <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="min-h-11 sm:min-w-36" type="button">
+                          <Plus className="h-4 w-4" />
+                          New card
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <CirclePlus className="h-5 w-5 text-teal-700" />
+                            New card
+                          </DialogTitle>
+                        </DialogHeader>
+
+                        <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
+                          <Label htmlFor="card-title">Title</Label>
+                          <Input
+                            id="card-title"
+                            onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                            placeholder="Design pricing page"
+                            value={draft.title}
+                          />
+
+                          <Label htmlFor="card-description">Description</Label>
+                          <Textarea
+                            id="card-description"
+                            className="resize-y"
+                            onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+                            placeholder="Add context, acceptance criteria, or next steps"
+                            value={draft.description}
+                          />
+
+                          <Label htmlFor="card-labels">Labels</Label>
+                          <Input
+                            id="card-labels"
+                            onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
+                            placeholder="Design, Launch"
+                            value={draft.labels}
+                          />
+
+                          <StatusPicker value={draftStatus} onChange={setDraftStatus} />
+
+                          <Button className="mt-1 min-h-11" disabled={saving} type="submit">
+                            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                            Add card
+                          </Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+
+                    <Button
+                      aria-label="Sign out"
+                      className="min-h-11 sm:w-11 lg:hidden"
+                      disabled={authLoading}
+                      onClick={handleSignOut}
+                      size="icon"
+                      type="button"
+                      variant="secondary"
+                    >
+                      {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Metric label="Cards" value={cards.length.toString()} />
+                  <Metric label="Done" value={totalDone.toString()} />
+                </div>
+              </header>
+
+              <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4">
+                {notice && (
+                  <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                    {notice}
+                  </p>
+                )}
+
+                <section className="pb-3">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+                    {columns.map((column) => (
+                      <div
+                        key={column.id}
+                        className={`min-w-0 rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition ${
+                          pointerDraggedId || draggedId ? "ring-2 ring-teal-100" : ""
+                        }`}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          moveActiveCard(column.id);
+                        }}
+                        onPointerUpCapture={(event) => {
+                          if (pointerDraggedId) {
+                            event.stopPropagation();
+                            moveActiveCard(column.id);
+                          }
                         }}
                       >
-                        <div className="mb-2 flex items-start justify-between gap-2">
-                          <div className="flex items-start gap-2">
-                            <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                            <h3 className="text-sm font-semibold leading-5 text-slate-950">{card.title}</h3>
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className={`h-2.5 w-2.5 rounded-full ${column.accent}`} />
+                            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700">
+                              {column.title}
+                            </h2>
                           </div>
-                          <Button
-                            aria-label={`Delete ${card.title}`}
-                            className="text-slate-400 hover:bg-rose-50 hover:text-rose-600"
-                            onClick={() => deleteCard(card.id)}
-                            onPointerDown={(event) => event.stopPropagation()}
-                            size="icon"
-                            type="button"
-                            variant="ghost"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <Badge variant="secondary">{groupedCards[column.id].length}</Badge>
                         </div>
 
-                        {card.description && (
-                          <p className="mb-3 text-sm leading-5 text-slate-600">{card.description}</p>
-                        )}
+                        <div className="flex min-h-[520px] flex-col gap-3 rounded-md bg-slate-50 p-2">
+                          {loading ? (
+                            <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 py-6 text-sm text-slate-500">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Loading
+                            </div>
+                          ) : groupedCards[column.id].length === 0 ? (
+                            <div className="rounded-md border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500">
+                              Drop cards here
+                            </div>
+                          ) : (
+                            groupedCards[column.id].map((card) => (
+                              <article
+                                key={card.id}
+                                draggable
+                                className={`rounded-md border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md ${
+                                  pointerDraggedId === card.id || draggedId === card.id
+                                    ? "cursor-grabbing opacity-75"
+                                    : "cursor-grab"
+                                }`}
+                                onDragEnd={() => {
+                                  setDraggedId(null);
+                                  setPointerDraggedId(null);
+                                }}
+                                onDragStart={() => {
+                                  setDraggedId(card.id);
+                                  setPointerDraggedId(card.id);
+                                }}
+                                onPointerDown={(event) => {
+                                  if ((event.target as HTMLElement).closest("button")) {
+                                    return;
+                                  }
 
-                        <div className="flex flex-wrap gap-1.5">
-                          {card.labels.map((label) => (
-                            <Badge key={label} className="font-medium" variant="teal">
-                              {label}
-                            </Badge>
-                          ))}
+                                  setPointerDraggedId(card.id);
+                                }}
+                              >
+                                <div className="mb-2 flex items-start justify-between gap-2">
+                                  <div className="flex items-start gap-2">
+                                    <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                                    <h3 className="text-sm font-semibold leading-5 text-slate-950">{card.title}</h3>
+                                  </div>
+                                  <Button
+                                    aria-label={`Delete ${card.title}`}
+                                    className="text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                                    onClick={() => deleteCard(card.id)}
+                                    onPointerDown={(event) => event.stopPropagation()}
+                                    size="icon"
+                                    type="button"
+                                    variant="ghost"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+
+                                {card.description && (
+                                  <p className="mb-3 text-sm leading-5 text-slate-600">{card.description}</p>
+                                )}
+
+                                <div className="flex flex-wrap gap-1.5">
+                                  {card.labels.map((label) => (
+                                    <Badge key={label} className="font-medium" variant="teal">
+                                      {label}
+                                    </Badge>
+                                  ))}
+                                </div>
+
+                                {card.status === "done" && (
+                                  <Badge className="mt-3 gap-1.5" variant="success">
+                                    <Check className="h-3.5 w-3.5" />
+                                    Complete
+                                  </Badge>
+                                )}
+                              </article>
+                            ))
+                          )}
                         </div>
-
-                        {card.status === "done" && (
-                          <Badge className="mt-3 gap-1.5" variant="success">
-                            <Check className="h-3.5 w-3.5" />
-                            Complete
-                          </Badge>
-                        )}
-                      </article>
-                    ))
-                  )}
-                </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </section>
-      </section>
+      </div>
     </main>
+  );
+}
+
+function SidebarItem({
+  active = false,
+  icon,
+  label,
+  onClick
+}: {
+  active?: boolean;
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      className={cn(
+        "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition",
+        active ? "bg-slate-100 text-slate-950" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+      )}
+      onClick={onClick}
+      type="button"
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+function SettingsView({
+  cardsCount,
+  doneCount,
+  email,
+  onSignOut,
+  signOutLoading,
+  userName
+}: {
+  cardsCount: number;
+  doneCount: number;
+  email: string;
+  onSignOut: () => void;
+  signOutLoading: boolean;
+  userName: string;
+}) {
+  return (
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5">
+      <header className="border-b border-slate-200 pb-5">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
+          Workspace preferences
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
+          Settings
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+          Manage your account and workspace overview.
+        </p>
+      </header>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-4">
+          <Card className="p-5 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold text-slate-950">Account</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  Signed in as {userName}.
+                </p>
+                {email && <p className="mt-1 truncate text-sm text-slate-600">{email}</p>}
+              </div>
+              <Button
+                className="sm:min-w-32"
+                disabled={signOutLoading}
+                onClick={onSignOut}
+                type="button"
+                variant="outline"
+              >
+                {signOutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                Log out
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-5 shadow-sm">
+            <h2 className="text-base font-semibold text-slate-950">Workspace</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              Your board data is scoped to this signed-in user.
+            </p>
+          </Card>
+        </div>
+
+        <Card className="p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-slate-950">Board summary</h2>
+          <div className="mt-4 grid gap-3">
+            <Metric label="Cards" value={cardsCount.toString()} />
+            <Metric label="Done" value={doneCount.toString()} />
+          </div>
+        </Card>
+      </div>
+    </div>
   );
 }
 
