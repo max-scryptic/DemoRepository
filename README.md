@@ -9,7 +9,7 @@ A Trello-style project management app built with Next.js, Tailwind CSS, and Supa
 - Drag cards between status columns
 - Search cards by title, description, or label
 - Supabase auth with per-user card ownership
-- One starter card is created automatically for each new user
+- Two starter cards are created automatically for each new user
 
 ## Local Development
 
