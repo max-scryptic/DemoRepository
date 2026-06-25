@@ -395,8 +395,6 @@ export default function ProjectBoard() {
       <SidebarProvider>
         <ProjectSidebar
           activeView={activeView}
-          cardsCount={cards.length}
-          doneCount={totalDone}
           onSearchChange={setQuery}
           onSignOut={handleSignOut}
           onViewChange={setActiveView}
