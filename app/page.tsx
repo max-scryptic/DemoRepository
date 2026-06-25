@@ -419,7 +419,7 @@ export default function ProjectBoard() {
                   <FolderKanban className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1 overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-in-out motion-reduce:transition-none">
-                  <p className="truncate text-sm font-semibold text-slate-950">Project Board</p>
+                  <p className="truncate text-sm font-semibold text-slate-950">Scryptic</p>
                   <p className="truncate text-xs text-slate-500">{getUserDisplayName(session.user)}</p>
                 </div>
                 <Button
