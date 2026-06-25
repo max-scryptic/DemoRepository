@@ -86,6 +86,7 @@ const SidebarProvider = React.forwardRef<
     <SidebarContext.Provider value={contextValue}>
       <div
         className={cn("group/sidebar-wrapper flex min-h-svh w-full bg-background", className)}
+        data-state={state}
         ref={ref}
         style={
           {
