@@ -75,6 +75,16 @@ export function ProjectSidebar({
                   <span>Projects</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={activeView === "settings"}
+                  onClick={() => onViewChange("settings")}
+                  type="button"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>Settings</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
