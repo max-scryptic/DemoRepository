@@ -46,6 +46,8 @@ const emptyAuthForm = {
   password: ""
 };
 
+type AuthMode = "login" | "signup";
+
 const themeStorageKey = "project-board-theme";
 
 export default function ProjectBoard() {
@@ -530,12 +532,19 @@ export default function ProjectBoard() {
 }
 
 function AuthPanel() {
+  const [mode, setMode] = useState<AuthMode>("signup");
   const [form, setForm] = useState(emptyAuthForm);
   const [pendingEmail, setPendingEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const passwordStrength = useMemo(() => getPasswordStrength(form.password), [form.password]);
   const isAwaitingConfirmation = pendingEmail.length > 0;
+
+  function switchAuthMode(nextMode: AuthMode) {
+    setMode(nextMode);
+    setPendingEmail("");
+    setMessage(null);
+  }
 
   async function handlePasswordAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -553,7 +562,7 @@ function AuthPanel() {
       return;
     }
 
-    if (!passwordStrength.isStrong) {
+    if (mode === "signup" && !passwordStrength.isStrong) {
       setMessage("Choose a stronger password before creating your account.");
       return;
     }
@@ -561,13 +570,19 @@ function AuthPanel() {
     setLoading(true);
     setMessage(null);
 
-    const result = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin
-      }
-    });
+    const result =
+      mode === "signup"
+        ? await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: window.location.origin
+            }
+          })
+        : await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
 
     setLoading(false);
 
@@ -576,13 +591,15 @@ function AuthPanel() {
       return;
     }
 
-    applyLightThemePreference();
-    setPendingEmail(email);
-    setMessage(
-      result.data.session
-        ? "Account created. Email confirmations appear to be disabled in Supabase, so you are already signed in."
-        : "We sent a confirmation email. Open the link in that email to finish creating your account."
-    );
+    if (mode === "signup") {
+      applyLightThemePreference();
+      setPendingEmail(email);
+      setMessage(
+        result.data.session
+          ? "Account created. Email confirmations appear to be disabled in Supabase, so you are already signed in."
+          : "We sent a confirmation email. Open the link in that email to finish creating your account."
+      );
+    }
   }
 
   async function handleResendConfirmationEmail() {
@@ -648,7 +665,9 @@ function AuthPanel() {
           </div>
           <div>
             <h1 className="text-xl font-semibold tracking-normal text-slate-950">Project Board</h1>
-            <p className="text-sm text-slate-500">Create an account to manage your own cards.</p>
+            <p className="text-sm text-slate-500">
+              {mode === "signup" ? "Create an account to manage your own cards." : "Sign in to manage your own cards."}
+            </p>
           </div>
         </div>
 
@@ -706,7 +725,7 @@ function AuthPanel() {
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
-                autoComplete="new-password"
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
                 disabled={!isSupabaseConfigured}
                 id="password"
                 onChange={(event) => setForm({ ...form, password: event.target.value })}
@@ -716,11 +735,11 @@ function AuthPanel() {
               />
             </div>
 
-            <PasswordStrengthMeter strength={passwordStrength} />
+            {mode === "signup" && <PasswordStrengthMeter strength={passwordStrength} />}
 
             <Button className="w-full" disabled={loading || !isSupabaseConfigured} type="submit">
               {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-              Create account
+              {mode === "signup" ? "Create account" : "Sign in"}
             </Button>
           </form>
         )}
@@ -743,6 +762,17 @@ function AuthPanel() {
               <GoogleLogo className="h-4 w-4" />
               Continue with Google
             </Button>
+
+            <p className="mt-5 border-t border-slate-200 pt-4 text-center text-sm text-slate-600">
+              {mode === "signup" ? "Already have an account?" : "Don't have an account?"}{" "}
+              <button
+                className="font-medium text-slate-950 underline-offset-4 hover:underline"
+                onClick={() => switchAuthMode(mode === "signup" ? "login" : "signup")}
+                type="button"
+              >
+                {mode === "signup" ? "Sign in" : "Create an account"}
+              </button>
+            </p>
           </>
         )}
 
