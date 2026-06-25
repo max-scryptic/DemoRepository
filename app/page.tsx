@@ -1,7 +1,20 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Check, CirclePlus, GripVertical, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import type { Session } from "@supabase/supabase-js";
+import {
+  Check,
+  CirclePlus,
+  GripVertical,
+  KeyRound,
+  Loader2,
+  LogOut,
+  Mail,
+  Plus,
+  Search,
+  ShieldCheck,
+  Trash2
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -62,6 +75,8 @@ const emptyDraft: CardDraft = {
   labels: ""
 };
 
+type AuthMode = "sign-in" | "forgot-password" | "update-password";
+
 export default function ProjectBoard() {
   const [cards, setCards] = useState<BoardCard[]>(starterCards);
   const [draft, setDraft] = useState<CardDraft>(emptyDraft);
@@ -73,6 +88,58 @@ export default function ProjectBoard() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode>("sign-in");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [authLoading, setAuthLoading] = useState(Boolean(supabase));
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!supabase) {
+      return;
+    }
+
+    const supabaseClient = supabase;
+    let ignore = false;
+
+    async function loadSession() {
+      const { data, error } = await supabaseClient.auth.getSession();
+
+      if (ignore) {
+        return;
+      }
+
+      if (error) {
+        setAuthError(error.message);
+      } else {
+        setSession(data.session);
+      }
+
+      setAuthLoading(false);
+    }
+
+    loadSession();
+
+    const {
+      data: { subscription }
+    } = supabaseClient.auth.onAuthStateChange((event, nextSession) => {
+      setSession(nextSession);
+
+      if (event === "PASSWORD_RECOVERY") {
+        setAuthMode("update-password");
+        setAuthMessage("Choose a new password to finish resetting your account.");
+      }
+    });
+
+    return () => {
+      ignore = true;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -83,7 +150,14 @@ export default function ProjectBoard() {
         return;
       }
 
-      const { data, error } = await supabase
+      if (!session) {
+        setLoading(false);
+        return;
+      }
+
+      const supabaseClient = supabase;
+      setLoading(true);
+      const { data, error } = await supabaseClient
         .from(cardsTable)
         .select("*")
         .order("status", { ascending: true })
@@ -107,7 +181,7 @@ export default function ProjectBoard() {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [session]);
 
   const filteredCards = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -134,6 +208,113 @@ export default function ProjectBoard() {
       {} as Record<Status, BoardCard[]>
     );
   }, [filteredCards]);
+
+  async function handleSignIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!supabase) {
+      setAuthError("Supabase is not configured for authentication.");
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthError(null);
+    setAuthMessage(null);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: authEmail.trim(),
+      password: authPassword
+    });
+
+    if (error) {
+      setAuthError(error.message);
+    } else {
+      setAuthPassword("");
+    }
+
+    setAuthLoading(false);
+  }
+
+  async function handlePasswordResetRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!supabase) {
+      setAuthError("Supabase is not configured for authentication.");
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthError(null);
+    setAuthMessage(null);
+
+    const redirectTo =
+      typeof window === "undefined" ? undefined : `${window.location.origin}${window.location.pathname}`;
+    const { error } = await supabase.auth.resetPasswordForEmail(authEmail.trim(), {
+      redirectTo
+    });
+
+    if (error) {
+      setAuthError(error.message);
+    } else {
+      setAuthMessage("Check your email for a reset link. It will bring you back here.");
+    }
+
+    setAuthLoading(false);
+  }
+
+  async function handlePasswordUpdate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!supabase) {
+      setAuthError("Supabase is not configured for authentication.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setAuthError("Use at least 8 characters for the new password.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setAuthError("The new passwords do not match.");
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthError(null);
+    setAuthMessage(null);
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+    if (error) {
+      setAuthError(error.message);
+    } else {
+      setNewPassword("");
+      setConfirmPassword("");
+      setAuthMessage("Password updated. You can keep working on the board.");
+      setAuthMode("sign-in");
+    }
+
+    setAuthLoading(false);
+  }
+
+  async function handleSignOut() {
+    if (!supabase) {
+      return;
+    }
+
+    setAuthLoading(true);
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      setAuthError(error.message);
+    } else {
+      setAuthPassword("");
+      setAuthMode("sign-in");
+    }
+
+    setAuthLoading(false);
+  }
 
   async function persistCards(nextCards: BoardCard[]) {
     if (!supabase) {
@@ -221,6 +402,34 @@ export default function ProjectBoard() {
   }
 
   const totalDone = cards.filter((card) => card.status === "done").length;
+  const shouldShowAuth = Boolean(supabase && (!session || authMode === "update-password"));
+
+  if (shouldShowAuth) {
+    return (
+      <AuthPanel
+        authEmail={authEmail}
+        authError={authError}
+        authLoading={authLoading}
+        authMessage={authMessage}
+        authMode={authMode}
+        authPassword={authPassword}
+        confirmPassword={confirmPassword}
+        newPassword={newPassword}
+        onEmailChange={setAuthEmail}
+        onForgotPassword={handlePasswordResetRequest}
+        onModeChange={(mode) => {
+          setAuthError(null);
+          setAuthMessage(null);
+          setAuthMode(mode);
+        }}
+        onNewPasswordChange={setNewPassword}
+        onPasswordChange={setAuthPassword}
+        onPasswordConfirmChange={setConfirmPassword}
+        onPasswordUpdate={handlePasswordUpdate}
+        onSignIn={handleSignIn}
+      />
+    );
+  }
 
   return (
     <main
@@ -236,6 +445,9 @@ export default function ProjectBoard() {
             <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
               Project Board
             </h1>
+            {session?.user.email && (
+              <p className="mt-2 truncate text-sm text-slate-500">{session.user.email}</p>
+            )}
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
@@ -303,6 +515,23 @@ export default function ProjectBoard() {
                   </form>
                 </DialogContent>
               </Dialog>
+              {supabase && session && (
+                <Button
+                  aria-label="Sign out"
+                  className="min-h-11 sm:w-11"
+                  disabled={authLoading}
+                  onClick={handleSignOut}
+                  size="icon"
+                  type="button"
+                  variant="secondary"
+                >
+                  {authLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LogOut className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
             </div>
           </div>
 
@@ -438,6 +667,177 @@ export default function ProjectBoard() {
             </div>
           </section>
         </div>
+      </section>
+    </main>
+  );
+}
+
+function AuthPanel({
+  authEmail,
+  authError,
+  authLoading,
+  authMessage,
+  authMode,
+  authPassword,
+  confirmPassword,
+  newPassword,
+  onEmailChange,
+  onForgotPassword,
+  onModeChange,
+  onNewPasswordChange,
+  onPasswordChange,
+  onPasswordConfirmChange,
+  onPasswordUpdate,
+  onSignIn
+}: {
+  authEmail: string;
+  authError: string | null;
+  authLoading: boolean;
+  authMessage: string | null;
+  authMode: AuthMode;
+  authPassword: string;
+  confirmPassword: string;
+  newPassword: string;
+  onEmailChange: (value: string) => void;
+  onForgotPassword: (event: FormEvent<HTMLFormElement>) => void;
+  onModeChange: (mode: AuthMode) => void;
+  onNewPasswordChange: (value: string) => void;
+  onPasswordChange: (value: string) => void;
+  onPasswordConfirmChange: (value: string) => void;
+  onPasswordUpdate: (event: FormEvent<HTMLFormElement>) => void;
+  onSignIn: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  const isUpdatingPassword = authMode === "update-password";
+  const isRequestingReset = authMode === "forgot-password";
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 text-slate-950">
+      <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-6 flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700">
+            {isUpdatingPassword ? <ShieldCheck className="h-5 w-5" /> : <KeyRound className="h-5 w-5" />}
+          </div>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-700">
+              Project Board
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-slate-950">
+              {isUpdatingPassword
+                ? "Set a new password"
+                : isRequestingReset
+                  ? "Reset your password"
+                  : "Sign in"}
+            </h1>
+            <p className="mt-2 text-sm leading-5 text-slate-600">
+              {isUpdatingPassword
+                ? "Enter a new password for your account."
+                : isRequestingReset
+                  ? "We will email you a secure link to continue."
+                  : "Use your workspace account to open the board."}
+            </p>
+          </div>
+        </div>
+
+        {authError && (
+          <p className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {authError}
+          </p>
+        )}
+
+        {authMessage && (
+          <p className="mb-4 rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-800">
+            {authMessage}
+          </p>
+        )}
+
+        {isUpdatingPassword ? (
+          <form className="grid gap-3" onSubmit={onPasswordUpdate}>
+            <Label htmlFor="new-password">New password</Label>
+            <Input
+              autoComplete="new-password"
+              id="new-password"
+              minLength={8}
+              onChange={(event) => onNewPasswordChange(event.target.value)}
+              required
+              type="password"
+              value={newPassword}
+            />
+
+            <Label htmlFor="confirm-password">Confirm password</Label>
+            <Input
+              autoComplete="new-password"
+              id="confirm-password"
+              minLength={8}
+              onChange={(event) => onPasswordConfirmChange(event.target.value)}
+              required
+              type="password"
+              value={confirmPassword}
+            />
+
+            <Button className="mt-2 min-h-11" disabled={authLoading} type="submit">
+              {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              Update password
+            </Button>
+          </form>
+        ) : (
+          <form className="grid gap-3" onSubmit={isRequestingReset ? onForgotPassword : onSignIn}>
+            <Label htmlFor="auth-email">Email</Label>
+            <Input
+              autoComplete="email"
+              id="auth-email"
+              onChange={(event) => onEmailChange(event.target.value)}
+              placeholder="you@company.com"
+              required
+              type="email"
+              value={authEmail}
+            />
+
+            {!isRequestingReset && (
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="auth-password">Password</Label>
+                  <button
+                    className="text-sm font-medium text-teal-700 hover:text-teal-900"
+                    onClick={() => onModeChange("forgot-password")}
+                    type="button"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <Input
+                  autoComplete="current-password"
+                  id="auth-password"
+                  onChange={(event) => onPasswordChange(event.target.value)}
+                  required
+                  type="password"
+                  value={authPassword}
+                />
+              </>
+            )}
+
+            <Button className="mt-2 min-h-11" disabled={authLoading} type="submit">
+              {authLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isRequestingReset ? (
+                <Mail className="h-4 w-4" />
+              ) : (
+                <KeyRound className="h-4 w-4" />
+              )}
+              {isRequestingReset ? "Send reset link" : "Sign in"}
+            </Button>
+
+            {isRequestingReset && (
+              <Button
+                className="min-h-11"
+                onClick={() => onModeChange("sign-in")}
+                type="button"
+                variant="secondary"
+              >
+                Back to sign in
+              </Button>
+            )}
+          </form>
+        )}
       </section>
     </main>
   );
