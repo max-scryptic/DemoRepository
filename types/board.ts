@@ -2,7 +2,7 @@ export type Status = "backlog" | "todo" | "in_progress" | "review" | "done";
 
 export type BoardCard = {
   id: string;
-  user_id?: string;
+  user_id: string;
   title: string;
   description: string;
   status: Status;
