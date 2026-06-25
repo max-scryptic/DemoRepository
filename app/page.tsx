@@ -50,6 +50,11 @@ const emptyAuthForm = {
 
 type AuthMode = "signup" | "login" | "forgot-password" | "update-password";
 type AuthMessageTone = "success" | "warning" | "error";
+type AuthRedirectState = {
+  mode: AuthMode;
+  message?: string;
+  tone?: AuthMessageTone;
+};
 type PasswordStrength = {
   checks: Array<{ label: string; met: boolean }>;
   isStrong: boolean;
@@ -71,13 +76,26 @@ export default function ProjectBoard() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [authRedirectMessage, setAuthRedirectMessage] = useState<string | null>(null);
+  const [authRedirectTone, setAuthRedirectTone] = useState<AuthMessageTone>("warning");
 
   useEffect(() => {
-    if (!isPasswordRecoveryRedirect()) {
+    const redirectState = getAuthRedirectState();
+
+    if (!redirectState) {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => setAuthMode("update-password"), 0);
+    const timeoutId = window.setTimeout(() => {
+      setAuthMode(redirectState.mode);
+      setAuthRedirectMessage(redirectState.message ?? null);
+      setAuthRedirectTone(redirectState.tone ?? "warning");
+
+      if (redirectState.mode === "forgot-password") {
+        clearAuthRedirectUrl();
+      }
+    }, 0);
+
     return () => window.clearTimeout(timeoutId);
   }, []);
 
@@ -87,10 +105,31 @@ export default function ProjectBoard() {
     }
 
     const supabaseClient = supabase;
-    const isRecoveryRedirect = isPasswordRecoveryRedirect();
+    const redirectState = getAuthRedirectState();
     let ignore = false;
 
     async function loadSession() {
+      if (redirectState?.mode === "update-password") {
+        const code = getAuthCallbackCode();
+
+        if (code) {
+          const { error: exchangeError } = await supabaseClient.auth.exchangeCodeForSession(code);
+
+          if (exchangeError && !ignore) {
+            setAuthMode("forgot-password");
+            setAuthRedirectMessage("That password reset link is no longer valid. Send yourself a fresh link to continue.");
+            setAuthRedirectTone("error");
+            clearAuthRedirectUrl();
+            setAuthLoading(false);
+            return;
+          }
+        }
+      }
+
+      if (ignore) {
+        return;
+      }
+
       const { data, error } = await supabaseClient.auth.getSession();
 
       if (ignore) {
@@ -101,8 +140,17 @@ export default function ProjectBoard() {
         setNotice(`Session could not be loaded: ${error.message}`);
       } else {
         setSession(data.session);
-        if (isRecoveryRedirect) {
+        if (redirectState?.mode === "update-password") {
           setAuthMode(data.session ? "update-password" : "forgot-password");
+          if (!data.session) {
+            setAuthRedirectMessage("That password reset link is no longer valid. Send yourself a fresh link to continue.");
+            setAuthRedirectTone("error");
+          }
+          clearAuthRedirectUrl();
+        } else if (redirectState?.mode === "forgot-password") {
+          setAuthMode("forgot-password");
+          setAuthRedirectMessage(redirectState.message ?? null);
+          setAuthRedirectTone(redirectState.tone ?? "warning");
           clearAuthRedirectUrl();
         }
       }
@@ -120,6 +168,8 @@ export default function ProjectBoard() {
 
       if (event === "PASSWORD_RECOVERY") {
         setAuthMode("update-password");
+        setAuthRedirectMessage("Choose a new password to finish resetting your account.");
+        setAuthRedirectTone("warning");
         clearAuthRedirectUrl();
       }
     });
@@ -314,8 +364,16 @@ export default function ProjectBoard() {
     );
   }
 
-  if (!session || authMode === "update-password") {
-    return <AuthPanel key={authMode} initialMode={authMode} onAuthModeChange={setAuthMode} />;
+  if (!session || authMode === "forgot-password" || authMode === "update-password") {
+    return (
+      <AuthPanel
+        key={`${authMode}-${authRedirectMessage ?? ""}`}
+        initialMessage={authRedirectMessage}
+        initialMessageTone={authRedirectTone}
+        initialMode={authMode}
+        onAuthModeChange={setAuthMode}
+      />
+    );
   }
 
   return (
@@ -545,9 +603,13 @@ export default function ProjectBoard() {
 }
 
 function AuthPanel({
+  initialMessage,
+  initialMessageTone,
   initialMode,
   onAuthModeChange
 }: {
+  initialMessage: string | null;
+  initialMessageTone: AuthMessageTone;
   initialMode: AuthMode;
   onAuthModeChange: (mode: AuthMode) => void;
 }) {
@@ -557,9 +619,10 @@ function AuthPanel({
   const [accountExistsEmail, setAccountExistsEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(
-    initialMode === "update-password" ? "Choose a new password to finish resetting your account." : null
+    initialMessage ??
+      (initialMode === "update-password" ? "Choose a new password to finish resetting your account." : null)
   );
-  const [messageTone, setMessageTone] = useState<AuthMessageTone>("warning");
+  const [messageTone, setMessageTone] = useState<AuthMessageTone>(initialMessageTone);
   const passwordStrength = useMemo(() => getPasswordStrength(form.password), [form.password]);
   const newPasswordStrength = useMemo(() => getPasswordStrength(form.newPassword), [form.newPassword]);
   const isAwaitingConfirmation = pendingEmail.length > 0;
@@ -1175,15 +1238,53 @@ function getAuthRedirectUrl(mode: "update-password") {
   return url.toString();
 }
 
-function isPasswordRecoveryRedirect() {
+function getAuthRedirectState(): AuthRedirectState | null {
   if (typeof window === "undefined") {
-    return false;
+    return null;
+  }
+
+  const url = new URL(window.location.href);
+  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+  const errorCode = url.searchParams.get("error_code") ?? hashParams.get("error_code");
+  const errorDescription =
+    url.searchParams.get("error_description") ?? hashParams.get("error_description");
+
+  if (errorCode || errorDescription) {
+    const isExpiredOtp = errorCode === "otp_expired";
+
+    return {
+      mode: "forgot-password",
+      message: isExpiredOtp
+        ? "That password reset link has expired or was already used. Send yourself a fresh link to continue."
+        : errorDescription ?? "That auth link is no longer valid. Send yourself a fresh password reset link.",
+      tone: "error"
+    };
+  }
+
+  if (url.searchParams.get("auth") === "update-password") {
+    return {
+      mode: "update-password"
+    };
+  }
+
+  if (hashParams.get("type") === "recovery") {
+    return {
+      mode: "update-password"
+    };
+  }
+
+  return null;
+}
+
+function getAuthCallbackCode() {
+  if (typeof window === "undefined") {
+    return null;
   }
 
   const url = new URL(window.location.href);
   const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
 
-  return url.searchParams.get("auth") === "update-password" || hashParams.get("type") === "recovery";
+  return url.searchParams.get("code") ?? hashParams.get("code");
 }
 
 function clearAuthRedirectUrl() {
