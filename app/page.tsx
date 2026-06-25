@@ -410,10 +410,6 @@ export default function ProjectBoard() {
           <header className="flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4">
             <SidebarTrigger className="-ml-1 hidden md:inline-flex" />
             <Separator className="mr-2 hidden h-4 md:block" orientation="vertical" />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-950">Project Board</p>
-              <p className="truncate text-xs text-slate-500">{getUserDisplayName(session.user)}</p>
-            </div>
           </header>
 
           <section className="flex min-w-0 flex-1 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
