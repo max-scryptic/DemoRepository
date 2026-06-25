@@ -22,8 +22,6 @@ import {
 
 type ProjectSidebarProps = {
   activeView: "board" | "settings";
-  cardsCount: number;
-  doneCount: number;
   onSearchChange: (query: string) => void;
   onSignOut: () => void;
   onViewChange: (view: "board" | "settings") => void;
@@ -35,8 +33,6 @@ type ProjectSidebarProps = {
 
 export function ProjectSidebar({
   activeView,
-  cardsCount,
-  doneCount,
   onSearchChange,
   onSignOut,
   onViewChange,
@@ -96,33 +92,7 @@ export function ProjectSidebar({
                   <span>Projects</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={activeView === "settings"}
-                  onClick={() => onViewChange("settings")}
-                  type="button"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span>Settings</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Summary</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <div className="grid gap-2 px-2 group-data-[collapsible=icon]:hidden">
-              <div className="rounded-lg border border-sidebar-border bg-background px-3 py-2">
-                <p className="text-xs text-sidebar-foreground/60">Cards</p>
-                <p className="text-lg font-semibold text-sidebar-foreground">{cardsCount}</p>
-              </div>
-              <div className="rounded-lg border border-sidebar-border bg-background px-3 py-2">
-                <p className="text-xs text-sidebar-foreground/60">Done</p>
-                <p className="text-lg font-semibold text-sidebar-foreground">{doneCount}</p>
-              </div>
-            </div>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
@@ -144,6 +114,18 @@ export function ProjectSidebar({
           {signOutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
           <span className="group-data-[collapsible=icon]:sr-only">Log out</span>
         </Button>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={activeView === "settings"}
+              onClick={() => onViewChange("settings")}
+              type="button"
+            >
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
