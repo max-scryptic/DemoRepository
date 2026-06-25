@@ -2,13 +2,13 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import Image from "next/image";
 import {
   AlertCircle,
   Check,
   CirclePlus,
   FolderKanban,
   GripVertical,
-  KeyRound,
   Loader2,
   LogOut,
   Mail,
@@ -981,14 +981,15 @@ function AuthPanel({
       <div className="w-full max-w-sm">
         <Card className="shadow-sm">
           <CardHeader className="gap-2 p-6">
-            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-950 text-white">
-              {isRequestingReset ? (
-                <Mail className="h-5 w-5" />
-              ) : isUpdatingPassword ? (
-                <KeyRound className="h-5 w-5" />
-              ) : (
-                <ShieldCheck className="h-5 w-5" />
-              )}
+            <div className="mb-2 flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-black">
+              <Image
+                alt="Scryptic logo"
+                className="h-full w-full object-contain"
+                height={40}
+                priority
+                src="/scryptic-logo-white.png"
+                width={40}
+              />
             </div>
             <CardTitle className="text-2xl">{getAuthTitle(mode)}</CardTitle>
             <CardDescription>{getAuthSubtitle(mode)}</CardDescription>

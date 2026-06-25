@@ -1,7 +1,7 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
-import { FolderKanban, Loader2, LogOut, Settings } from "lucide-react";
+import { FolderKanban, Loader2, LogOut } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
