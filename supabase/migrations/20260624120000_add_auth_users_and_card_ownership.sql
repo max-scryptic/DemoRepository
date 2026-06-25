@@ -54,6 +54,17 @@ begin
     avatar_url = coalesce(excluded.avatar_url, public.users.avatar_url),
     updated_at = now();
 
+  insert into public.project_cards (id, user_id, title, description, status, position, labels)
+  values (
+    gen_random_uuid(),
+    new.id,
+    'Plan your first project',
+    'Use this starter card to capture your next task, then drag it across the board as work progresses.',
+    'todo',
+    0,
+    array['Onboarding']
+  );
+
   return new;
 end;
 $$;
@@ -82,6 +93,22 @@ alter table public.project_cards
 
 create index if not exists project_cards_user_status_position_idx
   on public.project_cards (user_id, status, position);
+
+insert into public.project_cards (id, user_id, title, description, status, position, labels)
+select
+  gen_random_uuid(),
+  users.id,
+  'Plan your first project',
+  'Use this starter card to capture your next task, then drag it across the board as work progresses.',
+  'todo',
+  0,
+  array['Onboarding']
+from public.users
+where not exists (
+  select 1
+  from public.project_cards
+  where project_cards.user_id = users.id
+);
 
 drop policy if exists "Allow public card reads" on public.project_cards;
 drop policy if exists "Allow public card inserts" on public.project_cards;

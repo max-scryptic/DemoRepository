@@ -8,8 +8,8 @@ A Trello-style project management app built with Next.js, Tailwind CSS, and Supa
 - Create cards with title, description, labels, and initial status
 - Drag cards between status columns
 - Search cards by title, description, or label
-- Supabase persistence when environment variables are configured
-- Local starter data fallback when Supabase is not configured
+- Supabase auth with per-user card ownership
+- One starter card is created automatically for each new user
 
 ## Local Development
 
@@ -23,7 +23,7 @@ Open `http://localhost:3000`.
 ## Supabase Setup
 
 1. Create a Supabase project.
-2. Run the SQL in `supabase/migrations/20260617180000_create_project_cards.sql`.
+2. Run the SQL migrations in order from `supabase/migrations`.
 3. Copy `.env.example` to `.env.local`.
 4. Add your project URL and publishable key:
 
@@ -32,9 +32,10 @@ NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 ```
 
-The demo migration uses public read/write policies for easy prototyping. For production, add authentication and restrict row access to the owning user or workspace.
-
-If cards do not persist and Supabase returns a permission error, also run `supabase/migrations/20260617183500_grant_project_cards_access.sql`.
+The auth ownership migration adds `project_cards.user_id`, creates user profiles from `auth.users`,
+restricts card access to the owning user, and creates a starter card when a new user signs up.
+If the app shows `column project_cards.user_id does not exist`, run
+`supabase/migrations/20260624120000_add_auth_users_and_card_ownership.sql` against the connected Supabase project.
 
 ## Vercel Setup
 
