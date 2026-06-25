@@ -236,7 +236,12 @@ SidebarContent.displayName = "SidebarContent";
 
 const SidebarGroup = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
   ({ className, ...props }, ref) => (
-    <div className={cn("relative flex w-full min-w-0 flex-col p-2", className)} data-sidebar="group" ref={ref} {...props} />
+    <div
+      className={cn("relative flex w-full min-w-0 flex-col p-2 group-data-[collapsible=icon]:items-center", className)}
+      data-sidebar="group"
+      ref={ref}
+      {...props}
+    />
   )
 );
 SidebarGroup.displayName = "SidebarGroup";
@@ -263,14 +268,24 @@ SidebarGroupLabel.displayName = "SidebarGroupLabel";
 
 const SidebarGroupContent = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
   ({ className, ...props }, ref) => (
-    <div className={cn("w-full text-sm", className)} data-sidebar="group-content" ref={ref} {...props} />
+    <div
+      className={cn("w-full text-sm group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center", className)}
+      data-sidebar="group-content"
+      ref={ref}
+      {...props}
+    />
   )
 );
 SidebarGroupContent.displayName = "SidebarGroupContent";
 
 const SidebarMenu = React.forwardRef<HTMLUListElement, React.ComponentProps<"ul">>(
   ({ className, ...props }, ref) => (
-    <ul className={cn("flex w-full min-w-0 flex-col gap-1", className)} data-sidebar="menu" ref={ref} {...props} />
+    <ul
+      className={cn("flex w-full min-w-0 flex-col gap-1 group-data-[collapsible=icon]:items-center", className)}
+      data-sidebar="menu"
+      ref={ref}
+      {...props}
+    />
   )
 );
 SidebarMenu.displayName = "SidebarMenu";
