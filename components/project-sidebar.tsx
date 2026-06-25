@@ -47,11 +47,11 @@ export function ProjectSidebar({
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton className="h-12" type="button">
+            <SidebarMenuButton className="h-12 group-data-[collapsible=icon]:!h-10 group-data-[collapsible=icon]:!w-10" type="button">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black">
                 <Image
                   alt="Scryptic logo"
-                  className="h-8 w-8 scale-[1.75] object-cover"
+                  className="h-full w-full object-contain"
                   height={32}
                   src="/scryptic-logo-white.png"
                   width={32}
@@ -72,13 +72,13 @@ export function ProjectSidebar({
                 Search
               </Label>
               <SidebarInput
-                className="pl-8"
+                className="pl-8 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:rounded-md group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:text-transparent group-data-[collapsible=icon]:placeholder:text-transparent"
                 id="sidebar-search"
                 onChange={(event) => onSearchChange(event.target.value)}
                 placeholder="Search cards..."
                 value={query}
               />
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-sidebar-foreground/50" />
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-sidebar-foreground/50 group-data-[collapsible=icon]:left-1/2 group-data-[collapsible=icon]:-translate-x-1/2" />
             </SidebarGroupContent>
           </SidebarGroup>
         </form>
@@ -111,7 +111,7 @@ export function ProjectSidebar({
           <p className="truncate text-xs text-sidebar-foreground/60">{user.email}</p>
         </div>
         <Button
-          className="justify-start rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          className="justify-start rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
           disabled={signOutLoading}
           onClick={onSignOut}
           title="Log out"
