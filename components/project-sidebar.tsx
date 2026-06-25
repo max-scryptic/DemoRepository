@@ -105,6 +105,18 @@ export function ProjectSidebar({
       </SidebarContent>
 
       <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              isActive={activeView === "settings"}
+              onClick={() => onViewChange("settings")}
+              type="button"
+            >
+              <Settings className="h-4 w-4" />
+              <span>Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <SidebarSeparator />
         <div className="rounded-lg border border-sidebar-border bg-background px-3 py-2 group-data-[collapsible=icon]:hidden">
           <p className="truncate text-sm font-medium text-sidebar-foreground">{userName}</p>
@@ -121,18 +133,6 @@ export function ProjectSidebar({
           {signOutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
           <span className="group-data-[collapsible=icon]:sr-only">Log out</span>
         </Button>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={activeView === "settings"}
-              onClick={() => onViewChange("settings")}
-              type="button"
-            >
-              <Settings className="h-4 w-4" />
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
