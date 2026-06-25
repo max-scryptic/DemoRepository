@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import {
+  AlertCircle,
   Check,
   CirclePlus,
   FolderKanban,
@@ -47,6 +48,7 @@ const emptyAuthForm = {
 };
 
 type AuthMode = "login" | "signup";
+type AuthMessageTone = "warning" | "error";
 
 const themeStorageKey = "project-board-theme";
 
@@ -535,14 +537,35 @@ function AuthPanel() {
   const [mode, setMode] = useState<AuthMode>("signup");
   const [form, setForm] = useState(emptyAuthForm);
   const [pendingEmail, setPendingEmail] = useState("");
+  const [accountExistsEmail, setAccountExistsEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageTone, setMessageTone] = useState<AuthMessageTone>("warning");
   const passwordStrength = useMemo(() => getPasswordStrength(form.password), [form.password]);
   const isAwaitingConfirmation = pendingEmail.length > 0;
+  const isExistingAccount = accountExistsEmail.length > 0;
 
   function switchAuthMode(nextMode: AuthMode) {
     setMode(nextMode);
     setPendingEmail("");
+    setAccountExistsEmail("");
+    setMessage(null);
+  }
+
+  function showAuthMessage(nextMessage: string, tone: AuthMessageTone = "warning") {
+    setMessageTone(tone);
+    setMessage(nextMessage);
+  }
+
+  function updateAuthForm(nextForm: typeof emptyAuthForm) {
+    setForm(nextForm);
+    setAccountExistsEmail("");
+    setMessage(null);
+  }
+
+  function showExistingAccount(email: string) {
+    setPendingEmail("");
+    setAccountExistsEmail(email);
     setMessage(null);
   }
 
@@ -550,7 +573,7 @@ function AuthPanel() {
     event.preventDefault();
 
     if (!supabase) {
-      setMessage("Add Supabase environment variables before signing in.");
+      showAuthMessage("Add Supabase environment variables before signing in.");
       return;
     }
 
@@ -558,12 +581,12 @@ function AuthPanel() {
     const password = form.password;
 
     if (!isValidEmail(email) || password.length < 6) {
-      setMessage("Enter a valid email address and a password of at least 6 characters.");
+      showAuthMessage("Enter a valid email address and a password of at least 6 characters.");
       return;
     }
 
     if (mode === "signup" && !passwordStrength.isStrong) {
-      setMessage("Choose a stronger password before creating your account.");
+      showAuthMessage("Choose a stronger password before creating your account.");
       return;
     }
 
@@ -587,14 +610,24 @@ function AuthPanel() {
     setLoading(false);
 
     if (result.error) {
-      setMessage(result.error.message);
+      if (mode === "signup" && isAlreadyRegisteredError(result.error.message)) {
+        showExistingAccount(email);
+        return;
+      }
+
+      showAuthMessage(result.error.message, "error");
       return;
     }
 
     if (mode === "signup") {
+      if (isDuplicateSignupResponse(result.data.user, result.data.session)) {
+        showExistingAccount(email);
+        return;
+      }
+
       applyLightThemePreference();
       setPendingEmail(email);
-      setMessage(
+      showAuthMessage(
         result.data.session
           ? "Account created. Email confirmations appear to be disabled in Supabase, so you are already signed in."
           : "We sent a confirmation email. Open the link in that email to finish creating your account."
@@ -604,14 +637,14 @@ function AuthPanel() {
 
   async function handleResendConfirmationEmail() {
     if (!supabase) {
-      setMessage("Add Supabase environment variables before resending confirmation email.");
+      showAuthMessage("Add Supabase environment variables before resending confirmation email.");
       return;
     }
 
     const email = pendingEmail || form.email.trim().toLowerCase();
 
     if (!isValidEmail(email)) {
-      setMessage("Enter a valid email address before resending confirmation.");
+      showAuthMessage("Enter a valid email address before resending confirmation.");
       return;
     }
 
@@ -629,16 +662,16 @@ function AuthPanel() {
     setLoading(false);
 
     if (error) {
-      setMessage(error.message);
+      showAuthMessage(error.message, "error");
       return;
     }
 
-    setMessage("Confirmation email sent again. Check your inbox and spam folder.");
+    showAuthMessage("Confirmation email sent again. Check your inbox and spam folder.");
   }
 
   async function handleGoogleSignIn() {
     if (!supabase) {
-      setMessage("Add Supabase environment variables before signing in.");
+      showAuthMessage("Add Supabase environment variables before signing in.");
       return;
     }
 
@@ -652,7 +685,7 @@ function AuthPanel() {
     });
 
     if (error) {
-      setMessage(error.message);
+      showAuthMessage(error.message, "error");
     }
   }
 
@@ -670,6 +703,47 @@ function AuthPanel() {
             </p>
           </div>
         </div>
+
+        {isExistingAccount && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
+            <div className="flex gap-2">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+              <div className="min-w-0">
+                <p className="font-semibold text-amber-950">Account already exists</p>
+                <p className="mt-1 text-amber-900">
+                  An account with{" "}
+                  <span className="font-medium text-amber-950">{accountExistsEmail}</span>{" "}
+                  already exists. Sign in with this email instead.
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <Button
+                className="border-amber-300 bg-white text-amber-950 hover:bg-amber-100"
+                onClick={() => {
+                  setMode("login");
+                  setAccountExistsEmail("");
+                  setMessage(null);
+                }}
+                type="button"
+                variant="outline"
+              >
+                Sign in instead
+              </Button>
+              <Button
+                className="text-amber-950 hover:bg-amber-100"
+                onClick={() => {
+                  updateAuthForm({ ...form, email: "" });
+                  setMode("signup");
+                }}
+                type="button"
+                variant="ghost"
+              >
+                Use a different email
+              </Button>
+            </div>
+          </div>
+        )}
 
         {isAwaitingConfirmation ? (
           <div className="space-y-3">
@@ -715,7 +789,7 @@ function AuthPanel() {
                 autoComplete="email"
                 disabled={!isSupabaseConfigured}
                 id="email"
-                onChange={(event) => setForm({ ...form, email: event.target.value })}
+                onChange={(event) => updateAuthForm({ ...form, email: event.target.value })}
                 placeholder="you@company.com"
                 type="email"
                 value={form.email}
@@ -728,7 +802,7 @@ function AuthPanel() {
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
                 disabled={!isSupabaseConfigured}
                 id="password"
-                onChange={(event) => setForm({ ...form, password: event.target.value })}
+                onChange={(event) => updateAuthForm({ ...form, password: event.target.value })}
                 placeholder="Password"
                 type="password"
                 value={form.password}
@@ -777,7 +851,14 @@ function AuthPanel() {
         )}
 
         {message && (
-          <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <p
+            className={cn(
+              "mt-4 rounded-md border px-3 py-2 text-sm",
+              messageTone === "error"
+                ? "border-rose-200 bg-rose-50 text-rose-900"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            )}
+          >
             {message}
           </p>
         )}
@@ -948,6 +1029,14 @@ function normalizePositions(cards: BoardCard[]) {
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isAlreadyRegisteredError(message: string) {
+  return /user already registered|already.*account|already.*registered/i.test(message);
+}
+
+function isDuplicateSignupResponse(user: User | null, session: Session | null) {
+  return Boolean(user && !session && Array.isArray(user.identities) && user.identities.length === 0);
 }
 
 function getPasswordStrength(password: string): PasswordStrength {
