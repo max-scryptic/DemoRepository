@@ -2,6 +2,7 @@
 
 import type { User } from "@supabase/supabase-js";
 import { FolderKanban, Loader2, LogOut, Search, Settings } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -51,8 +52,14 @@ export function ProjectSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton className="h-12" type="button">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <FolderKanban className="h-4 w-4" />
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black">
+                <Image
+                  alt="Scryptic logo"
+                  className="h-8 w-8 scale-[1.75] object-cover"
+                  height={32}
+                  src="/scryptic-logo-white.png"
+                  width={32}
+                />
               </div>
               <span className="flex min-w-0 flex-col gap-0.5 leading-none">
                 <span className="truncate font-semibold">Scryptic</span>
