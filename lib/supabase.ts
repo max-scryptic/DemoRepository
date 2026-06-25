@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import type { BoardCard } from "@/types/board";
+import type { BoardCard, UserProfile } from "@/types/board";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -11,8 +11,15 @@ export const supabase = isSupabaseConfigured
   : null;
 
 export const cardsTable = "project_cards";
+export const usersTable = "users";
 
 export type ProjectCardRow = Omit<BoardCard, "created_at" | "updated_at"> & {
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UserProfileRow = UserProfile & {
   created_at: string;
   updated_at: string;
 };
