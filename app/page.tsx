@@ -13,6 +13,8 @@ import {
   Loader2,
   LogOut,
   Mail,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   Search,
   Settings,
@@ -75,6 +77,7 @@ export default function ProjectBoard() {
   const [draftStatus, setDraftStatus] = useState<Status>("todo");
   const [isNewCardOpen, setIsNewCardOpen] = useState(false);
   const [activeView, setActiveView] = useState<ActiveView>("board");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [pointerDraggedId, setPointerDraggedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -391,46 +394,93 @@ export default function ProjectBoard() {
       onPointerUp={() => setPointerDraggedId(null)}
     >
       <div className="flex min-h-screen">
-        <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white px-4 py-5 lg:flex lg:flex-col">
-          <div className="flex items-center gap-2 px-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-950 text-white">
-              <FolderKanban className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-950">Project Board</p>
-              <p className="truncate text-xs text-slate-500">{getUserDisplayName(session.user)}</p>
-            </div>
+        <aside
+          className={cn(
+            "hidden shrink-0 overflow-hidden border-r border-slate-200 bg-white py-5 transition-[width,padding] duration-300 ease-in-out motion-reduce:transition-none lg:flex lg:flex-col",
+            isSidebarCollapsed ? "w-20 px-3" : "w-64 px-4"
+          )}
+        >
+          <div className={cn("flex items-center", isSidebarCollapsed ? "justify-center" : "gap-2 px-2")}>
+            {isSidebarCollapsed ? (
+              <Button
+                aria-label="Expand sidebar"
+                className="h-9 w-9 text-slate-500 hover:text-slate-950"
+                onClick={() => setIsSidebarCollapsed(false)}
+                size="icon"
+                title="Expand sidebar"
+                type="button"
+                variant="ghost"
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </Button>
+            ) : (
+              <>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-white">
+                  <FolderKanban className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1 overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-in-out motion-reduce:transition-none">
+                  <p className="truncate text-sm font-semibold text-slate-950">Project Board</p>
+                  <p className="truncate text-xs text-slate-500">{getUserDisplayName(session.user)}</p>
+                </div>
+                <Button
+                  aria-label="Collapse sidebar"
+                  className="h-9 w-9 shrink-0 text-slate-500 hover:text-slate-950"
+                  onClick={() => setIsSidebarCollapsed(true)}
+                  size="icon"
+                  title="Collapse sidebar"
+                  type="button"
+                  variant="ghost"
+                >
+                  <PanelLeftClose className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
 
           <nav className="mt-8 space-y-1">
             <SidebarItem
               active={activeView === "board"}
+              collapsed={isSidebarCollapsed}
               icon={<FolderKanban className="h-4 w-4" />}
               label="Projects"
               onClick={() => setActiveView("board")}
             />
+          </nav>
+
+          <div className="mt-auto space-y-3 border-t border-slate-200 pt-4">
             <SidebarItem
               active={activeView === "settings"}
+              collapsed={isSidebarCollapsed}
               icon={<Settings className="h-4 w-4" />}
               label="Settings"
               onClick={() => setActiveView("settings")}
             />
-          </nav>
-
-          <div className="mt-auto space-y-3 border-t border-slate-200 pt-4">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <div
+              className={cn(
+                "rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 transition-[max-height,opacity,transform] duration-200 ease-in-out motion-reduce:transition-none",
+                isSidebarCollapsed
+                  ? "max-h-0 -translate-y-1 overflow-hidden border-transparent px-0 py-0 opacity-0"
+                  : "max-h-24 translate-y-0 opacity-100"
+              )}
+              aria-hidden={isSidebarCollapsed}
+            >
               <p className="truncate text-sm font-medium text-slate-900">{getUserDisplayName(session.user)}</p>
               <p className="truncate text-xs text-slate-500">{session.user.email}</p>
             </div>
             <Button
-              className="w-full justify-start text-slate-600"
+              aria-label="Log out"
+              className={cn(
+                "w-full text-slate-600",
+                isSidebarCollapsed ? "justify-center px-0" : "justify-start"
+              )}
               disabled={authLoading}
               onClick={handleSignOut}
+              title={isSidebarCollapsed ? "Log out" : undefined}
               type="button"
               variant="ghost"
             >
               {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-              Log out
+              <span className={sidebarLabelClassName(isSidebarCollapsed)}>Log out</span>
             </Button>
           </div>
         </aside>
@@ -693,27 +743,39 @@ export default function ProjectBoard() {
 
 function SidebarItem({
   active = false,
+  collapsed = false,
   icon,
   label,
   onClick
 }: {
   active?: boolean;
+  collapsed?: boolean;
   icon: ReactNode;
   label: string;
   onClick: () => void;
 }) {
   return (
     <button
+      aria-label={label}
       className={cn(
         "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition",
+        collapsed && "justify-center px-0",
         active ? "bg-slate-100 text-slate-950" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
       )}
       onClick={onClick}
+      title={collapsed ? label : undefined}
       type="button"
     >
       {icon}
-      {label}
+      <span className={sidebarLabelClassName(collapsed)}>{label}</span>
     </button>
+  );
+}
+
+function sidebarLabelClassName(isCollapsed: boolean) {
+  return cn(
+    "min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-in-out motion-reduce:transition-none",
+    isCollapsed ? "max-w-0 -translate-x-1 opacity-0" : "max-w-32 translate-x-0 opacity-100"
   );
 }
 
