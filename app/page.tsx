@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
+import type { Session, User } from "@supabase/supabase-js";
 import {
+  AlertCircle,
   Check,
   CirclePlus,
   GripVertical,
@@ -40,11 +41,26 @@ const emptyDraft: CardDraft = {
   labels: ""
 };
 
-type AuthMode = "sign-in" | "forgot-password" | "update-password";
+const emptyAuthForm = {
+  email: "",
+  password: "",
+  newPassword: "",
+  confirmPassword: ""
+};
+
+type AuthMode = "signup" | "login" | "forgot-password" | "update-password";
+type AuthMessageTone = "success" | "warning" | "error";
+type PasswordStrength = {
+  checks: Array<{ label: string; met: boolean }>;
+  isStrong: boolean;
+  label: string;
+  score: number;
+};
 
 export default function ProjectBoard() {
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(isSupabaseConfigured);
+  const [authMode, setAuthMode] = useState<AuthMode>("signup");
   const [cards, setCards] = useState<BoardCard[]>([]);
   const [draft, setDraft] = useState<CardDraft>(emptyDraft);
   const [draftStatus, setDraftStatus] = useState<Status>("todo");
@@ -55,15 +71,6 @@ export default function ProjectBoard() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [authMode, setAuthMode] = useState<AuthMode>("sign-in");
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [authLoading, setAuthLoading] = useState(Boolean(supabase));
-  const [authMessage, setAuthMessage] = useState<string | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!supabase) {
@@ -81,7 +88,7 @@ export default function ProjectBoard() {
       }
 
       if (error) {
-        setAuthError(error.message);
+        setNotice(`Session could not be loaded: ${error.message}`);
       } else {
         setSession(data.session);
       }
@@ -95,10 +102,10 @@ export default function ProjectBoard() {
       data: { subscription }
     } = supabaseClient.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
+      setAuthLoading(false);
 
       if (event === "PASSWORD_RECOVERY") {
         setAuthMode("update-password");
-        setAuthMessage("Choose a new password to finish resetting your account.");
       }
     });
 
@@ -109,41 +116,11 @@ export default function ProjectBoard() {
   }, []);
 
   useEffect(() => {
-    if (!supabase) {
-      return;
-    }
-
-    let active = true;
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (active) {
-        setSession(data.session);
-        setAuthLoading(false);
-      }
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setAuthLoading(false);
-    });
-
-    return () => {
-      active = false;
-      listener.subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
     let ignore = false;
 
     async function loadCards() {
-      if (!supabase || !session?.user) {
+      if (!supabase || !session?.user || authMode === "update-password") {
         setCards([]);
-        setLoading(false);
-        return;
-      }
-
-      if (!session) {
         setLoading(false);
         return;
       }
@@ -175,7 +152,7 @@ export default function ProjectBoard() {
     return () => {
       ignore = true;
     };
-  }, [session]);
+  }, [authMode, session]);
 
   const filteredCards = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -202,113 +179,6 @@ export default function ProjectBoard() {
       {} as Record<Status, BoardCard[]>
     );
   }, [filteredCards]);
-
-  async function handleSignIn(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!supabase) {
-      setAuthError("Supabase is not configured for authentication.");
-      return;
-    }
-
-    setAuthLoading(true);
-    setAuthError(null);
-    setAuthMessage(null);
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email: authEmail.trim(),
-      password: authPassword
-    });
-
-    if (error) {
-      setAuthError(error.message);
-    } else {
-      setAuthPassword("");
-    }
-
-    setAuthLoading(false);
-  }
-
-  async function handlePasswordResetRequest(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!supabase) {
-      setAuthError("Supabase is not configured for authentication.");
-      return;
-    }
-
-    setAuthLoading(true);
-    setAuthError(null);
-    setAuthMessage(null);
-
-    const redirectTo =
-      typeof window === "undefined" ? undefined : `${window.location.origin}${window.location.pathname}`;
-    const { error } = await supabase.auth.resetPasswordForEmail(authEmail.trim(), {
-      redirectTo
-    });
-
-    if (error) {
-      setAuthError(error.message);
-    } else {
-      setAuthMessage("Check your email for a reset link. It will bring you back here.");
-    }
-
-    setAuthLoading(false);
-  }
-
-  async function handlePasswordUpdate(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!supabase) {
-      setAuthError("Supabase is not configured for authentication.");
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setAuthError("Use at least 8 characters for the new password.");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setAuthError("The new passwords do not match.");
-      return;
-    }
-
-    setAuthLoading(true);
-    setAuthError(null);
-    setAuthMessage(null);
-
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-
-    if (error) {
-      setAuthError(error.message);
-    } else {
-      setNewPassword("");
-      setConfirmPassword("");
-      setAuthMessage("Password updated. You can keep working on the board.");
-      setAuthMode("sign-in");
-    }
-
-    setAuthLoading(false);
-  }
-
-  async function handleSignOut() {
-    if (!supabase) {
-      return;
-    }
-
-    setAuthLoading(true);
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      setAuthError(error.message);
-    } else {
-      setAuthPassword("");
-      setAuthMode("sign-in");
-    }
-
-    setAuthLoading(false);
-  }
 
   async function persistCards(nextCards: BoardCard[]) {
     if (!supabase || !session?.user) {
@@ -402,40 +272,21 @@ export default function ProjectBoard() {
       return;
     }
 
-    await supabase.auth.signOut();
-    setCards([]);
-    setNotice(null);
+    setAuthLoading(true);
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      setNotice(`Sign out failed: ${error.message}`);
+    } else {
+      setCards([]);
+      setNotice(null);
+      setAuthMode("login");
+    }
+
+    setAuthLoading(false);
   }
 
   const totalDone = cards.filter((card) => card.status === "done").length;
-  const shouldShowAuth = Boolean(supabase && (!session || authMode === "update-password"));
-
-  if (shouldShowAuth) {
-    return (
-      <AuthPanel
-        authEmail={authEmail}
-        authError={authError}
-        authLoading={authLoading}
-        authMessage={authMessage}
-        authMode={authMode}
-        authPassword={authPassword}
-        confirmPassword={confirmPassword}
-        newPassword={newPassword}
-        onEmailChange={setAuthEmail}
-        onForgotPassword={handlePasswordResetRequest}
-        onModeChange={(mode) => {
-          setAuthError(null);
-          setAuthMessage(null);
-          setAuthMode(mode);
-        }}
-        onNewPasswordChange={setNewPassword}
-        onPasswordChange={setAuthPassword}
-        onPasswordConfirmChange={setConfirmPassword}
-        onPasswordUpdate={handlePasswordUpdate}
-        onSignIn={handleSignIn}
-      />
-    );
-  }
 
   if (authLoading) {
     return (
@@ -448,16 +299,16 @@ export default function ProjectBoard() {
     );
   }
 
-  if (!session) {
-    return <AuthPanel />;
+  if (!session || authMode === "update-password") {
+    return <AuthPanel key={authMode} initialMode={authMode} onAuthModeChange={setAuthMode} />;
   }
 
   return (
     <main
-      className="min-h-screen bg-slate-50 text-slate-950"
+      className="min-h-screen bg-slate-50 px-4 py-5 text-slate-950 sm:px-6 lg:px-8"
       onPointerUp={() => setPointerDraggedId(null)}
     >
-      <section className="mx-auto flex max-w-[1520px] flex-col gap-5">
+      <section className="mx-auto flex max-w-[1200px] flex-col gap-5">
         <header className="grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
@@ -466,78 +317,68 @@ export default function ProjectBoard() {
             <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
               Project Board
             </h1>
-            {session?.user.email && (
-              <p className="mt-2 truncate text-sm text-slate-500">{session.user.email}</p>
-            )}
+            <p className="mt-2 truncate text-sm text-slate-500">
+              {getUserDisplayName(session.user)} · {session.user.email}
+            </p>
           </div>
-        </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
-          <header className="mx-auto grid w-full max-w-[1200px] gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
-                Project management
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
-                Project Board
-              </h1>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-              <div className="flex min-h-[70px] flex-col gap-3 sm:flex-row sm:items-center">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
-                    <Search className="h-4 w-4 text-slate-500" />
-                    <input
-                      id="search"
-                      className="w-full border-0 bg-transparent text-sm outline-none"
-                      value={query}
-                      onChange={(event) => setQuery(event.target.value)}
-                      placeholder="Title, label, or description"
-                    />
-                  </div>
+          <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="flex min-h-[70px] flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
+                  <Search className="h-4 w-4 text-slate-500" />
+                  <input
+                    id="search"
+                    className="w-full border-0 bg-transparent text-sm outline-none"
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Title, label, or description"
+                    value={query}
+                  />
                 </div>
+              </div>
 
-                <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="min-h-11 sm:min-w-36" type="button">
-                      <Plus className="h-4 w-4" />
+              <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
+                <DialogTrigger asChild>
+                  <Button className="min-h-11 sm:min-w-36" type="button">
+                    <Plus className="h-4 w-4" />
+                    New card
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <CirclePlus className="h-5 w-5 text-teal-700" />
                       New card
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <CirclePlus className="h-5 w-5 text-teal-700" />
-                        New card
-                      </DialogTitle>
-                    </DialogHeader>
+                    </DialogTitle>
+                  </DialogHeader>
 
-                    <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
-                      <Label htmlFor="card-title">Title</Label>
-                      <Input
-                        id="card-title"
-                        value={draft.title}
-                        onChange={(event) => setDraft({ ...draft, title: event.target.value })}
-                        placeholder="Design pricing page"
-                      />
+                  <form className="flex flex-col gap-3" onSubmit={handleCreateCard}>
+                    <Label htmlFor="card-title">Title</Label>
+                    <Input
+                      id="card-title"
+                      onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                      placeholder="Design pricing page"
+                      value={draft.title}
+                    />
 
-                      <Label htmlFor="card-description">Description</Label>
-                      <Textarea
-                        id="card-description"
-                        className="resize-y"
-                        value={draft.description}
-                        onChange={(event) => setDraft({ ...draft, description: event.target.value })}
-                        placeholder="Add context, acceptance criteria, or next steps"
-                      />
+                    <Label htmlFor="card-description">Description</Label>
+                    <Textarea
+                      id="card-description"
+                      className="resize-y"
+                      onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+                      placeholder="Add context, acceptance criteria, or next steps"
+                      value={draft.description}
+                    />
 
-                      <Label htmlFor="card-labels">Labels</Label>
-                      <Input
-                        id="card-labels"
-                        value={draft.labels}
-                        onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
-                        placeholder="Design, Launch"
-                      />
+                    <Label htmlFor="card-labels">Labels</Label>
+                    <Input
+                      id="card-labels"
+                      onChange={(event) => setDraft({ ...draft, labels: event.target.value })}
+                      placeholder="Design, Launch"
+                      value={draft.labels}
+                    />
+
+                    <StatusPicker value={draftStatus} onChange={setDraftStatus} />
 
                     <Button className="mt-1 min-h-11" disabled={saving} type="submit">
                       {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
@@ -546,188 +387,174 @@ export default function ProjectBoard() {
                   </form>
                 </DialogContent>
               </Dialog>
-              {supabase && session && (
-                <Button
-                  aria-label="Sign out"
-                  className="min-h-11 sm:w-11"
-                  disabled={authLoading}
-                  onClick={handleSignOut}
-                  size="icon"
-                  type="button"
-                  variant="secondary"
-                >
-                  {authLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <LogOut className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
-            </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Metric label="Cards" value={cards.length.toString()} />
-              <Metric label="Done" value={totalDone.toString()} />
-            </div>
-          </header>
-
-          <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4">
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm lg:hidden">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-slate-900">{getUserDisplayName(session.user)}</p>
-                <p className="truncate text-xs text-slate-500">{session.user.email}</p>
-              </div>
-              <Button onClick={handleSignOut} size="sm" type="button" variant="ghost">
-                <LogOut className="h-4 w-4" />
-                Log out
+              <Button
+                aria-label="Sign out"
+                className="min-h-11 sm:w-11"
+                disabled={authLoading}
+                onClick={handleSignOut}
+                size="icon"
+                type="button"
+                variant="secondary"
+              >
+                {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
               </Button>
             </div>
+          </div>
 
-            {notice && (
-              <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                {notice}
-              </p>
-            )}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Metric label="Cards" value={cards.length.toString()} />
+            <Metric label="Done" value={totalDone.toString()} />
+          </div>
+        </header>
 
-            <section className="pb-3">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-                {columns.map((column) => (
-                  <div
-                    key={column.id}
-                    className={`min-w-0 rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition ${
-                      pointerDraggedId || draggedId ? "ring-2 ring-teal-100" : ""
-                    }`}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      moveActiveCard(column.id);
-                    }}
-                    onPointerUpCapture={(event) => {
-                      if (pointerDraggedId) {
-                        event.stopPropagation();
-                        moveActiveCard(column.id);
-                      }
-                    }}
-                  >
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className={`h-2.5 w-2.5 rounded-full ${column.accent}`} />
-                        <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700">
-                          {column.title}
-                        </h2>
-                      </div>
-                      <Badge variant="secondary">
-                        {groupedCards[column.id].length}
-                      </Badge>
-                    </div>
+        {notice && (
+          <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            {notice}
+          </p>
+        )}
 
-                    <div className="flex min-h-[520px] flex-col gap-3 rounded-md bg-slate-50 p-2">
-                      {loading ? (
-                        <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 py-6 text-sm text-slate-500">
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Loading
-                        </div>
-                      ) : groupedCards[column.id].length === 0 ? (
-                        <div className="rounded-md border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500">
-                          Drop cards here
-                        </div>
-                      ) : (
-                        groupedCards[column.id].map((card) => (
-                          <article
-                            key={card.id}
-                            draggable
-                            onDragStart={() => {
-                              setDraggedId(card.id);
-                              setPointerDraggedId(card.id);
-                            }}
-                            onDragEnd={() => {
-                              setDraggedId(null);
-                              setPointerDraggedId(null);
-                            }}
-                            onPointerDown={(event) => {
-                              if ((event.target as HTMLElement).closest("button")) {
-                                return;
-                              }
-
-                              setPointerDraggedId(card.id);
-                            }}
-                            className={`rounded-md border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md ${
-                              pointerDraggedId === card.id || draggedId === card.id
-                                ? "cursor-grabbing opacity-75"
-                                : "cursor-grab"
-                            }`}
-                          >
-                            <div className="mb-2 flex items-start justify-between gap-2">
-                              <div className="flex items-start gap-2">
-                                <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                                <h3 className="text-sm font-semibold leading-5 text-slate-950">
-                                  {card.title}
-                                </h3>
-                              </div>
-                              <Button
-                                aria-label={`Delete ${card.title}`}
-                                className="text-slate-400 hover:bg-rose-50 hover:text-rose-600"
-                                onClick={() => deleteCard(card.id)}
-                                onPointerDown={(event) => event.stopPropagation()}
-                                size="icon"
-                                type="button"
-                                variant="ghost"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-
-                            {card.description && (
-                              <p className="mb-3 text-sm leading-5 text-slate-600">{card.description}</p>
-                            )}
-
-                            <div className="flex flex-wrap gap-1.5">
-                              {card.labels.map((label) => (
-                                <Badge
-                                  key={label}
-                                  className="font-medium"
-                                  variant="teal"
-                                >
-                                  {label}
-                                </Badge>
-                              ))}
-                            </div>
-
-                            {card.status === "done" && (
-                              <Badge className="mt-3 gap-1.5" variant="success">
-                                <Check className="h-3.5 w-3.5" />
-                                Complete
-                              </Badge>
-                            )}
-                          </article>
-                        ))
-                      )}
-                    </div>
+        <section className="pb-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+            {columns.map((column) => (
+              <div
+                key={column.id}
+                className={`min-w-0 rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition ${
+                  pointerDraggedId || draggedId ? "ring-2 ring-teal-100" : ""
+                }`}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  moveActiveCard(column.id);
+                }}
+                onPointerUpCapture={(event) => {
+                  if (pointerDraggedId) {
+                    event.stopPropagation();
+                    moveActiveCard(column.id);
+                  }
+                }}
+              >
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2.5 w-2.5 rounded-full ${column.accent}`} />
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700">
+                      {column.title}
+                    </h2>
                   </div>
-                ))}
+                  <Badge variant="secondary">{groupedCards[column.id].length}</Badge>
+                </div>
+
+                <div className="flex min-h-[520px] flex-col gap-3 rounded-md bg-slate-50 p-2">
+                  {loading ? (
+                    <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 py-6 text-sm text-slate-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading
+                    </div>
+                  ) : groupedCards[column.id].length === 0 ? (
+                    <div className="rounded-md border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500">
+                      Drop cards here
+                    </div>
+                  ) : (
+                    groupedCards[column.id].map((card) => (
+                      <article
+                        key={card.id}
+                        draggable
+                        className={`rounded-md border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md ${
+                          pointerDraggedId === card.id || draggedId === card.id
+                            ? "cursor-grabbing opacity-75"
+                            : "cursor-grab"
+                        }`}
+                        onDragEnd={() => {
+                          setDraggedId(null);
+                          setPointerDraggedId(null);
+                        }}
+                        onDragStart={() => {
+                          setDraggedId(card.id);
+                          setPointerDraggedId(card.id);
+                        }}
+                        onPointerDown={(event) => {
+                          if ((event.target as HTMLElement).closest("button")) {
+                            return;
+                          }
+
+                          setPointerDraggedId(card.id);
+                        }}
+                      >
+                        <div className="mb-2 flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-2">
+                            <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                            <h3 className="text-sm font-semibold leading-5 text-slate-950">{card.title}</h3>
+                          </div>
+                          <Button
+                            aria-label={`Delete ${card.title}`}
+                            className="text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                            onClick={() => deleteCard(card.id)}
+                            onPointerDown={(event) => event.stopPropagation()}
+                            size="icon"
+                            type="button"
+                            variant="ghost"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {card.description && (
+                          <p className="mb-3 text-sm leading-5 text-slate-600">{card.description}</p>
+                        )}
+
+                        <div className="flex flex-wrap gap-1.5">
+                          {card.labels.map((label) => (
+                            <Badge key={label} className="font-medium" variant="teal">
+                              {label}
+                            </Badge>
+                          ))}
+                        </div>
+
+                        {card.status === "done" && (
+                          <Badge className="mt-3 gap-1.5" variant="success">
+                            <Check className="h-3.5 w-3.5" />
+                            Complete
+                          </Badge>
+                        )}
+                      </article>
+                    ))
+                  )}
+                </div>
               </div>
-            </section>
+            ))}
           </div>
         </section>
-      </div>
+      </section>
     </main>
   );
 }
 
-function AuthPanel() {
-  const [mode, setMode] = useState<AuthMode>("signup");
+function AuthPanel({
+  initialMode,
+  onAuthModeChange
+}: {
+  initialMode: AuthMode;
+  onAuthModeChange: (mode: AuthMode) => void;
+}) {
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [form, setForm] = useState(emptyAuthForm);
   const [pendingEmail, setPendingEmail] = useState("");
   const [accountExistsEmail, setAccountExistsEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(
+    initialMode === "update-password" ? "Choose a new password to finish resetting your account." : null
+  );
   const [messageTone, setMessageTone] = useState<AuthMessageTone>("warning");
   const passwordStrength = useMemo(() => getPasswordStrength(form.password), [form.password]);
+  const newPasswordStrength = useMemo(() => getPasswordStrength(form.newPassword), [form.newPassword]);
   const isAwaitingConfirmation = pendingEmail.length > 0;
   const isExistingAccount = accountExistsEmail.length > 0;
+  const isRequestingReset = mode === "forgot-password";
+  const isUpdatingPassword = mode === "update-password";
 
   function switchAuthMode(nextMode: AuthMode) {
     setMode(nextMode);
+    onAuthModeChange(nextMode);
     setPendingEmail("");
     setAccountExistsEmail("");
     setMessage(null);
@@ -806,14 +633,81 @@ function AuthPanel() {
         return;
       }
 
-      applyLightThemePreference();
       setPendingEmail(email);
       showAuthMessage(
         result.data.session
           ? "Account created. Email confirmations appear to be disabled in Supabase, so you are already signed in."
-          : "We sent a confirmation email. Open the link in that email to finish creating your account."
+          : "We sent a confirmation email. Open the link in that email to finish creating your account.",
+        "success"
       );
     }
+  }
+
+  async function handlePasswordResetRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!supabase) {
+      showAuthMessage("Add Supabase environment variables before resetting your password.");
+      return;
+    }
+
+    const email = form.email.trim().toLowerCase();
+
+    if (!isValidEmail(email)) {
+      showAuthMessage("Enter the email address for your account.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin
+    });
+
+    setLoading(false);
+
+    if (error) {
+      showAuthMessage(error.message, "error");
+      return;
+    }
+
+    showAuthMessage("Check your email for a password reset link. It will bring you back here.", "success");
+  }
+
+  async function handlePasswordUpdate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!supabase) {
+      showAuthMessage("Add Supabase environment variables before updating your password.");
+      return;
+    }
+
+    if (!newPasswordStrength.isStrong) {
+      showAuthMessage("Choose a stronger password before updating your account.");
+      return;
+    }
+
+    if (form.newPassword !== form.confirmPassword) {
+      showAuthMessage("The new passwords do not match.", "error");
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    const { error } = await supabase.auth.updateUser({ password: form.newPassword });
+
+    setLoading(false);
+
+    if (error) {
+      showAuthMessage(error.message, "error");
+      return;
+    }
+
+    setForm(emptyAuthForm);
+    showAuthMessage("Password updated. You can keep working on the board.", "success");
+    switchAuthMode("login");
   }
 
   async function handleResendConfirmationEmail() {
@@ -847,7 +741,7 @@ function AuthPanel() {
       return;
     }
 
-    showAuthMessage("Confirmation email sent again. Check your inbox and spam folder.");
+    showAuthMessage("Confirmation email sent again. Check your inbox and spam folder.", "success");
   }
 
   async function handleGoogleSignIn() {
@@ -855,8 +749,6 @@ function AuthPanel() {
       showAuthMessage("Add Supabase environment variables before signing in.");
       return;
     }
-
-    applyLightThemePreference();
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -875,13 +767,17 @@ function AuthPanel() {
       <Card className="w-full max-w-md p-6 shadow-sm">
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-950 text-white">
-            <ShieldCheck className="h-5 w-5" />
+            {isRequestingReset ? (
+              <Mail className="h-5 w-5" />
+            ) : isUpdatingPassword ? (
+              <KeyRound className="h-5 w-5" />
+            ) : (
+              <ShieldCheck className="h-5 w-5" />
+            )}
           </div>
           <div>
             <h1 className="text-xl font-semibold tracking-normal text-slate-950">Project Board</h1>
-            <p className="text-sm text-slate-500">
-              {mode === "signup" ? "Create an account to manage your own cards." : "Sign in to manage your own cards."}
-            </p>
+            <p className="text-sm text-slate-500">{getAuthSubtitle(mode)}</p>
           </div>
         </div>
 
@@ -892,8 +788,7 @@ function AuthPanel() {
               <div className="min-w-0">
                 <p className="font-semibold text-amber-950">Account already exists</p>
                 <p className="mt-1 text-amber-900">
-                  An account with{" "}
-                  <span className="font-medium text-amber-950">{accountExistsEmail}</span>{" "}
+                  An account with <span className="font-medium text-amber-950">{accountExistsEmail}</span>{" "}
                   already exists. Sign in with this email instead.
                 </p>
               </div>
@@ -903,6 +798,7 @@ function AuthPanel() {
                 className="border-amber-300 bg-white text-amber-950 hover:bg-amber-100"
                 onClick={() => {
                   setMode("login");
+                  onAuthModeChange("login");
                   setAccountExistsEmail("");
                   setMessage(null);
                 }}
@@ -915,7 +811,7 @@ function AuthPanel() {
                 className="text-amber-950 hover:bg-amber-100"
                 onClick={() => {
                   updateAuthForm({ ...form, email: "" });
-                  setMode("signup");
+                  switchAuthMode("signup");
                 }}
                 type="button"
                 variant="ghost"
@@ -961,6 +857,74 @@ function AuthPanel() {
               Edit email or password
             </Button>
           </div>
+        ) : isUpdatingPassword ? (
+          <form className="space-y-3" onSubmit={handlePasswordUpdate}>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New password</Label>
+              <Input
+                autoComplete="new-password"
+                disabled={!isSupabaseConfigured}
+                id="new-password"
+                minLength={8}
+                onChange={(event) => updateAuthForm({ ...form, newPassword: event.target.value })}
+                placeholder="New password"
+                type="password"
+                value={form.newPassword}
+              />
+            </div>
+
+            <PasswordStrengthMeter strength={newPasswordStrength} />
+
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm password</Label>
+              <Input
+                autoComplete="new-password"
+                disabled={!isSupabaseConfigured}
+                id="confirm-password"
+                minLength={8}
+                onChange={(event) => updateAuthForm({ ...form, confirmPassword: event.target.value })}
+                placeholder="Confirm password"
+                type="password"
+                value={form.confirmPassword}
+              />
+            </div>
+
+            <Button className="w-full" disabled={loading || !isSupabaseConfigured} type="submit">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              Update password
+            </Button>
+          </form>
+        ) : isRequestingReset ? (
+          <form className="space-y-3" onSubmit={handlePasswordResetRequest}>
+            <div className="space-y-2">
+              <Label htmlFor="reset-email">Email</Label>
+              <Input
+                autoCapitalize="none"
+                autoComplete="email"
+                disabled={!isSupabaseConfigured}
+                id="reset-email"
+                onChange={(event) => updateAuthForm({ ...form, email: event.target.value })}
+                placeholder="you@company.com"
+                type="email"
+                value={form.email}
+              />
+            </div>
+
+            <Button className="w-full" disabled={loading || !isSupabaseConfigured} type="submit">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+              Send reset link
+            </Button>
+
+            <Button
+              className="w-full"
+              disabled={loading}
+              onClick={() => switchAuthMode("login")}
+              type="button"
+              variant="ghost"
+            >
+              Back to sign in
+            </Button>
+          </form>
         ) : (
           <form className="space-y-3" onSubmit={handlePasswordAuth}>
             <div className="space-y-2">
@@ -978,7 +942,18 @@ function AuthPanel() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="password">Password</Label>
+                {mode === "login" && (
+                  <button
+                    className="text-sm font-medium text-teal-700 hover:text-teal-900"
+                    onClick={() => switchAuthMode("forgot-password")}
+                    type="button"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <Input
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
                 disabled={!isSupabaseConfigured}
@@ -999,7 +974,7 @@ function AuthPanel() {
           </form>
         )}
 
-        {!isAwaitingConfirmation && (
+        {!isAwaitingConfirmation && !isUpdatingPassword && !isRequestingReset && (
           <>
             <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
               <span className="h-px flex-1 bg-slate-200" />
@@ -1037,7 +1012,9 @@ function AuthPanel() {
               "mt-4 rounded-md border px-3 py-2 text-sm",
               messageTone === "error"
                 ? "border-rose-200 bg-rose-50 text-rose-900"
-                : "border-amber-200 bg-amber-50 text-amber-900"
+                : messageTone === "success"
+                  ? "border-teal-200 bg-teal-50 text-teal-900"
+                  : "border-amber-200 bg-amber-50 text-amber-900"
             )}
           >
             {message}
@@ -1050,177 +1027,6 @@ function AuthPanel() {
           </p>
         )}
       </Card>
-    </main>
-  );
-}
-
-function AuthPanel({
-  authEmail,
-  authError,
-  authLoading,
-  authMessage,
-  authMode,
-  authPassword,
-  confirmPassword,
-  newPassword,
-  onEmailChange,
-  onForgotPassword,
-  onModeChange,
-  onNewPasswordChange,
-  onPasswordChange,
-  onPasswordConfirmChange,
-  onPasswordUpdate,
-  onSignIn
-}: {
-  authEmail: string;
-  authError: string | null;
-  authLoading: boolean;
-  authMessage: string | null;
-  authMode: AuthMode;
-  authPassword: string;
-  confirmPassword: string;
-  newPassword: string;
-  onEmailChange: (value: string) => void;
-  onForgotPassword: (event: FormEvent<HTMLFormElement>) => void;
-  onModeChange: (mode: AuthMode) => void;
-  onNewPasswordChange: (value: string) => void;
-  onPasswordChange: (value: string) => void;
-  onPasswordConfirmChange: (value: string) => void;
-  onPasswordUpdate: (event: FormEvent<HTMLFormElement>) => void;
-  onSignIn: (event: FormEvent<HTMLFormElement>) => void;
-}) {
-  const isUpdatingPassword = authMode === "update-password";
-  const isRequestingReset = authMode === "forgot-password";
-
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 text-slate-950">
-      <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-6 flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700">
-            {isUpdatingPassword ? <ShieldCheck className="h-5 w-5" /> : <KeyRound className="h-5 w-5" />}
-          </div>
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-700">
-              Project Board
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-slate-950">
-              {isUpdatingPassword
-                ? "Set a new password"
-                : isRequestingReset
-                  ? "Reset your password"
-                  : "Sign in"}
-            </h1>
-            <p className="mt-2 text-sm leading-5 text-slate-600">
-              {isUpdatingPassword
-                ? "Enter a new password for your account."
-                : isRequestingReset
-                  ? "We will email you a secure link to continue."
-                  : "Use your workspace account to open the board."}
-            </p>
-          </div>
-        </div>
-
-        {authError && (
-          <p className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-            {authError}
-          </p>
-        )}
-
-        {authMessage && (
-          <p className="mb-4 rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-800">
-            {authMessage}
-          </p>
-        )}
-
-        {isUpdatingPassword ? (
-          <form className="grid gap-3" onSubmit={onPasswordUpdate}>
-            <Label htmlFor="new-password">New password</Label>
-            <Input
-              autoComplete="new-password"
-              id="new-password"
-              minLength={8}
-              onChange={(event) => onNewPasswordChange(event.target.value)}
-              required
-              type="password"
-              value={newPassword}
-            />
-
-            <Label htmlFor="confirm-password">Confirm password</Label>
-            <Input
-              autoComplete="new-password"
-              id="confirm-password"
-              minLength={8}
-              onChange={(event) => onPasswordConfirmChange(event.target.value)}
-              required
-              type="password"
-              value={confirmPassword}
-            />
-
-            <Button className="mt-2 min-h-11" disabled={authLoading} type="submit">
-              {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-              Update password
-            </Button>
-          </form>
-        ) : (
-          <form className="grid gap-3" onSubmit={isRequestingReset ? onForgotPassword : onSignIn}>
-            <Label htmlFor="auth-email">Email</Label>
-            <Input
-              autoComplete="email"
-              id="auth-email"
-              onChange={(event) => onEmailChange(event.target.value)}
-              placeholder="you@company.com"
-              required
-              type="email"
-              value={authEmail}
-            />
-
-            {!isRequestingReset && (
-              <>
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="auth-password">Password</Label>
-                  <button
-                    className="text-sm font-medium text-teal-700 hover:text-teal-900"
-                    onClick={() => onModeChange("forgot-password")}
-                    type="button"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-                <Input
-                  autoComplete="current-password"
-                  id="auth-password"
-                  onChange={(event) => onPasswordChange(event.target.value)}
-                  required
-                  type="password"
-                  value={authPassword}
-                />
-              </>
-            )}
-
-            <Button className="mt-2 min-h-11" disabled={authLoading} type="submit">
-              {authLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isRequestingReset ? (
-                <Mail className="h-4 w-4" />
-              ) : (
-                <KeyRound className="h-4 w-4" />
-              )}
-              {isRequestingReset ? "Send reset link" : "Sign in"}
-            </Button>
-
-            {isRequestingReset && (
-              <Button
-                className="min-h-11"
-                onClick={() => onModeChange("sign-in")}
-                type="button"
-                variant="secondary"
-              >
-                Back to sign in
-              </Button>
-            )}
-          </form>
-        )}
-      </section>
     </main>
   );
 }
@@ -1246,7 +1052,7 @@ function StatusPicker({
       <Label id="card-status-label">Status</Label>
       <div
         aria-labelledby="card-status-label"
-        className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-muted p-1.5"
+        className="grid grid-cols-2 gap-2 rounded-lg border border-border bg-muted p-1.5"
         role="radiogroup"
       >
         {columns.map((column) => {
@@ -1275,6 +1081,59 @@ function StatusPicker({
         })}
       </div>
     </div>
+  );
+}
+
+function PasswordStrengthMeter({ strength }: { strength: PasswordStrength }) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-slate-700">Password strength</p>
+        <p className="text-sm text-slate-500">{strength.label}</p>
+      </div>
+      <div className="mb-3 grid grid-cols-5 gap-1">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <span
+            className={cn(
+              "h-1.5 rounded-full",
+              index < strength.score ? "bg-teal-600" : "bg-slate-200"
+            )}
+            key={index}
+          />
+        ))}
+      </div>
+      <div className="grid gap-1.5">
+        {strength.checks.map((check) => (
+          <div className="flex items-center gap-2 text-xs text-slate-600" key={check.label}>
+            <Check className={cn("h-3.5 w-3.5", check.met ? "text-teal-700" : "text-slate-300")} />
+            {check.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GoogleLogo({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" className={className} viewBox="0 0 24 24">
+      <path
+        d="M21.6 12.23c0-.74-.07-1.45-.19-2.13H12v4.02h5.38a4.6 4.6 0 0 1-1.99 3.02v2.51h3.23c1.89-1.74 2.98-4.31 2.98-7.42z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12 22c2.7 0 4.96-.9 6.62-2.35l-3.23-2.51c-.9.6-2.04.95-3.39.95-2.6 0-4.8-1.76-5.59-4.12H3.07v2.59A9.99 9.99 0 0 0 12 22z"
+        fill="#34A853"
+      />
+      <path
+        d="M6.41 13.97a6.01 6.01 0 0 1 0-3.94V7.44H3.07a9.99 9.99 0 0 0 0 9.12l3.34-2.59z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12 5.91c1.47 0 2.79.5 3.83 1.5l2.86-2.86C16.96 2.94 14.7 2 12 2a9.99 9.99 0 0 0-8.93 5.44l3.34 2.59C7.2 7.67 9.4 5.91 12 5.91z"
+        fill="#EA4335"
+      />
+    </svg>
   );
 }
 
@@ -1314,6 +1173,20 @@ function getPasswordStrength(password: string): PasswordStrength {
     label: ["Very weak", "Weak", "Fair", "Good", "Strong", "Excellent"][normalizedScore],
     score: normalizedScore
   };
+}
+
+function getAuthSubtitle(mode: AuthMode) {
+  if (mode === "forgot-password") {
+    return "Enter your email and we will send a reset link.";
+  }
+
+  if (mode === "update-password") {
+    return "Set a new password for your account.";
+  }
+
+  return mode === "signup"
+    ? "Create an account to manage your own cards."
+    : "Sign in to manage your own cards.";
 }
 
 function getUserDisplayName(user: User) {
