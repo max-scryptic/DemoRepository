@@ -439,7 +439,7 @@ export default function ProjectBoard() {
             />
           ) : (
             <>
-              <header className="mx-auto grid w-full max-w-[1200px] gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(300px,0.7fr)_minmax(360px,1fr)] lg:items-end">
+              <header className="mx-auto grid w-full max-w-[1200px] gap-4 border-b border-slate-200 pb-5 group-data-[state=collapsed]/sidebar-wrapper:max-w-none lg:grid-cols-[minmax(220px,0.85fr)_minmax(300px,0.7fr)_minmax(360px,1fr)] lg:items-end">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
                     Project management
@@ -538,7 +538,7 @@ export default function ProjectBoard() {
                 </div>
               </header>
 
-              <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4">
+              <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 group-data-[state=collapsed]/sidebar-wrapper:max-w-none">
                 {notice && (
                   <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                     {notice}
@@ -681,7 +681,7 @@ function SettingsView({
   userName: string;
 }) {
   return (
-    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5 group-data-[state=collapsed]/sidebar-wrapper:max-w-none">
       <header className="border-b border-slate-200 pb-5">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
           Workspace preferences
