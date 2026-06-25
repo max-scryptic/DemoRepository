@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import {
   AlertCircle,
@@ -13,8 +12,6 @@ import {
   Loader2,
   LogOut,
   Mail,
-  PanelLeftClose,
-  PanelLeftOpen,
   Plus,
   Search,
   Settings,
@@ -23,11 +20,14 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
+import { ProjectSidebar } from "@/components/project-sidebar";
 import { cardsTable, isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import type { BoardCard, CardDraft, Status } from "@/types/board";
@@ -77,7 +77,6 @@ export default function ProjectBoard() {
   const [draftStatus, setDraftStatus] = useState<Status>("todo");
   const [isNewCardOpen, setIsNewCardOpen] = useState(false);
   const [activeView, setActiveView] = useState<ActiveView>("board");
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [pointerDraggedId, setPointerDraggedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -393,117 +392,49 @@ export default function ProjectBoard() {
       className="min-h-screen bg-slate-50 text-slate-950"
       onPointerUp={() => setPointerDraggedId(null)}
     >
-      <div className="flex min-h-screen">
-        <aside
-          className={cn(
-            "hidden shrink-0 overflow-hidden border-r border-slate-200 bg-white py-5 transition-[width,padding] duration-300 ease-in-out motion-reduce:transition-none lg:flex lg:flex-col",
-            isSidebarCollapsed ? "w-20 px-3" : "w-64 px-4"
-          )}
-        >
-          <div className={cn("flex items-center", isSidebarCollapsed ? "justify-center" : "gap-2 px-2")}>
-            {isSidebarCollapsed ? (
-              <Button
-                aria-label="Expand sidebar"
-                className="h-9 w-9 text-slate-500 hover:text-slate-950"
-                onClick={() => setIsSidebarCollapsed(false)}
-                size="icon"
-                title="Expand sidebar"
-                type="button"
-                variant="ghost"
-              >
-                <PanelLeftOpen className="h-4 w-4" />
-              </Button>
-            ) : (
-              <>
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-950 text-white">
-                  <FolderKanban className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1 overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-in-out motion-reduce:transition-none">
-                  <p className="truncate text-sm font-semibold text-slate-950">Scryptic</p>
-                  <p className="truncate text-xs text-slate-500">{getUserDisplayName(session.user)}</p>
-                </div>
-                <Button
-                  aria-label="Collapse sidebar"
-                  className="h-9 w-9 shrink-0 text-slate-500 hover:text-slate-950"
-                  onClick={() => setIsSidebarCollapsed(true)}
-                  size="icon"
-                  title="Collapse sidebar"
-                  type="button"
-                  variant="ghost"
-                >
-                  <PanelLeftClose className="h-4 w-4" />
-                </Button>
-              </>
-            )}
-          </div>
+      <SidebarProvider>
+        <ProjectSidebar
+          activeView={activeView}
+          cardsCount={cards.length}
+          doneCount={totalDone}
+          onSearchChange={setQuery}
+          onSignOut={handleSignOut}
+          onViewChange={setActiveView}
+          query={query}
+          signOutLoading={authLoading}
+          user={session.user}
+          userName={getUserDisplayName(session.user)}
+        />
 
-          <nav className="mt-8 space-y-1">
-            <SidebarItem
-              active={activeView === "board"}
-              collapsed={isSidebarCollapsed}
-              icon={<FolderKanban className="h-4 w-4" />}
-              label="Projects"
-              onClick={() => setActiveView("board")}
-            />
-          </nav>
-
-          <div className="mt-auto space-y-3 border-t border-slate-200 pt-4">
-            <SidebarItem
-              active={activeView === "settings"}
-              collapsed={isSidebarCollapsed}
-              icon={<Settings className="h-4 w-4" />}
-              label="Settings"
-              onClick={() => setActiveView("settings")}
-            />
-            <div
-              className={cn(
-                "rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 transition-[max-height,opacity,transform] duration-200 ease-in-out motion-reduce:transition-none",
-                isSidebarCollapsed
-                  ? "max-h-0 -translate-y-1 overflow-hidden border-transparent px-0 py-0 opacity-0"
-                  : "max-h-24 translate-y-0 opacity-100"
-              )}
-              aria-hidden={isSidebarCollapsed}
-            >
-              <p className="truncate text-sm font-medium text-slate-900">{getUserDisplayName(session.user)}</p>
-              <p className="truncate text-xs text-slate-500">{session.user.email}</p>
+        <SidebarInset>
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4">
+            <SidebarTrigger className="-ml-1 hidden md:inline-flex" />
+            <Separator className="mr-2 hidden h-4 md:block" orientation="vertical" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-950">Project Board</p>
+              <p className="truncate text-xs text-slate-500">{getUserDisplayName(session.user)}</p>
             </div>
-            <Button
-              aria-label="Log out"
-              className={cn(
-                "w-full text-slate-600",
-                isSidebarCollapsed ? "justify-center px-0" : "justify-start"
-              )}
-              disabled={authLoading}
-              onClick={handleSignOut}
-              title={isSidebarCollapsed ? "Log out" : undefined}
-              type="button"
-              variant="ghost"
-            >
-              {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-              <span className={sidebarLabelClassName(isSidebarCollapsed)}>Log out</span>
-            </Button>
-          </div>
-        </aside>
+          </header>
 
-        <section className="flex min-w-0 flex-1 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 gap-2 lg:hidden">
-            <Button
-              onClick={() => setActiveView("board")}
-              type="button"
-              variant={activeView === "board" ? "secondary" : "outline"}
-            >
-              <FolderKanban className="h-4 w-4" />
-              Board
-            </Button>
-            <Button
-              onClick={() => setActiveView("settings")}
-              type="button"
-              variant={activeView === "settings" ? "secondary" : "outline"}
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </Button>
-          </div>
+          <section className="flex min-w-0 flex-1 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 gap-2 md:hidden">
+              <Button
+                onClick={() => setActiveView("board")}
+                type="button"
+                variant={activeView === "board" ? "secondary" : "outline"}
+              >
+                <FolderKanban className="h-4 w-4" />
+                Board
+              </Button>
+              <Button
+                onClick={() => setActiveView("settings")}
+                type="button"
+                variant={activeView === "settings" ? "secondary" : "outline"}
+              >
+                <Settings className="h-4 w-4" />
+                Settings
+              </Button>
+            </div>
 
           {activeView === "settings" ? (
             <SettingsView
@@ -735,47 +666,10 @@ export default function ProjectBoard() {
               </div>
             </>
           )}
-        </section>
-      </div>
+          </section>
+        </SidebarInset>
+      </SidebarProvider>
     </main>
-  );
-}
-
-function SidebarItem({
-  active = false,
-  collapsed = false,
-  icon,
-  label,
-  onClick
-}: {
-  active?: boolean;
-  collapsed?: boolean;
-  icon: ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      aria-label={label}
-      className={cn(
-        "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition",
-        collapsed && "justify-center px-0",
-        active ? "bg-slate-100 text-slate-950" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
-      )}
-      onClick={onClick}
-      title={collapsed ? label : undefined}
-      type="button"
-    >
-      {icon}
-      <span className={sidebarLabelClassName(collapsed)}>{label}</span>
-    </button>
-  );
-}
-
-function sidebarLabelClassName(isCollapsed: boolean) {
-  return cn(
-    "min-w-0 overflow-hidden whitespace-nowrap transition-[max-width,opacity,transform] duration-200 ease-in-out motion-reduce:transition-none",
-    isCollapsed ? "max-w-0 -translate-x-1 opacity-0" : "max-w-32 translate-x-0 opacity-100"
   );
 }
 
@@ -1092,22 +986,23 @@ function AuthPanel({
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 text-slate-950">
-      <Card className="w-full max-w-md p-6 shadow-sm">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-950 text-white">
-            {isRequestingReset ? (
-              <Mail className="h-5 w-5" />
-            ) : isUpdatingPassword ? (
-              <KeyRound className="h-5 w-5" />
-            ) : (
-              <ShieldCheck className="h-5 w-5" />
-            )}
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold tracking-normal text-slate-950">Project Board</h1>
-            <p className="text-sm text-slate-500">{getAuthSubtitle(mode)}</p>
-          </div>
-        </div>
+      <div className="w-full max-w-sm">
+        <Card className="shadow-sm">
+          <CardHeader className="gap-2 p-6">
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-950 text-white">
+              {isRequestingReset ? (
+                <Mail className="h-5 w-5" />
+              ) : isUpdatingPassword ? (
+                <KeyRound className="h-5 w-5" />
+              ) : (
+                <ShieldCheck className="h-5 w-5" />
+              )}
+            </div>
+            <CardTitle className="text-2xl">{getAuthTitle(mode)}</CardTitle>
+            <CardDescription>{getAuthSubtitle(mode)}</CardDescription>
+          </CardHeader>
+
+          <CardContent className="p-6 pt-0">
 
         {isExistingAccount && (
           <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
@@ -1354,7 +1249,9 @@ function AuthPanel({
             Configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to enable auth.
           </p>
         )}
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }
@@ -1586,6 +1483,18 @@ function getAuthSubtitle(mode: AuthMode) {
   return mode === "signup"
     ? "Create an account to manage your own cards."
     : "Sign in to manage your own cards.";
+}
+
+function getAuthTitle(mode: AuthMode) {
+  if (mode === "forgot-password") {
+    return "Reset password";
+  }
+
+  if (mode === "update-password") {
+    return "Update password";
+  }
+
+  return mode === "signup" ? "Create an account" : "Login";
 }
 
 function getUserDisplayName(user: User) {
