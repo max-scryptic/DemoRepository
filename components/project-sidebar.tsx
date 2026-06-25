@@ -1,10 +1,9 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
-import { FolderKanban, Loader2, LogOut, Search, Settings } from "lucide-react";
+import { FolderKanban, Loader2, LogOut, Settings } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
   Sidebar,
   SidebarContent,
@@ -13,7 +12,6 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
-  SidebarInput,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -23,10 +21,8 @@ import {
 
 type ProjectSidebarProps = {
   activeView: "board" | "settings";
-  onSearchChange: (query: string) => void;
   onSignOut: () => void;
   onViewChange: (view: "board" | "settings") => void;
-  query: string;
   signOutLoading: boolean;
   user: User;
   userName: string;
@@ -34,17 +30,15 @@ type ProjectSidebarProps = {
 
 export function ProjectSidebar({
   activeView,
-  onSearchChange,
   onSignOut,
   onViewChange,
-  query,
   signOutLoading,
   user,
   userName
 }: ProjectSidebarProps) {
   return (
     <Sidebar>
-      <SidebarHeader>
+      <SidebarHeader className="group-data-[collapsible=icon]:items-center">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton className="h-12 group-data-[collapsible=icon]:!h-10 group-data-[collapsible=icon]:!w-10" type="button">
@@ -64,24 +58,6 @@ export function ProjectSidebar({
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-
-        <form>
-          <SidebarGroup className="py-0">
-            <SidebarGroupContent className="relative">
-              <Label className="sr-only" htmlFor="sidebar-search">
-                Search
-              </Label>
-              <SidebarInput
-                className="pl-8 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:rounded-md group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:text-transparent group-data-[collapsible=icon]:placeholder:text-transparent"
-                id="sidebar-search"
-                onChange={(event) => onSearchChange(event.target.value)}
-                placeholder="Search cards..."
-                value={query}
-              />
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-sidebar-foreground/50 group-data-[collapsible=icon]:left-1/2 group-data-[collapsible=icon]:-translate-x-1/2" />
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </form>
       </SidebarHeader>
 
       <SidebarContent>
@@ -104,7 +80,7 @@ export function ProjectSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="group-data-[collapsible=icon]:items-center">
         <SidebarSeparator />
         <div className="rounded-lg border border-sidebar-border bg-background px-3 py-2 group-data-[collapsible=icon]:hidden">
           <p className="truncate text-sm font-medium text-sidebar-foreground">{userName}</p>
