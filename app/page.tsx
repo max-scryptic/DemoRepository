@@ -529,10 +529,10 @@ export default function ProjectBoard() {
                   </p>
                 </div>
 
-                <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-                  <div className="flex min-h-[70px] flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                  <div className="flex flex-col gap-3 sm:h-12 sm:flex-row sm:items-stretch">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
+                      <div className="flex h-12 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
                         <Search className="h-4 w-4 text-slate-500" />
                         <input
                           id="search"
@@ -546,7 +546,7 @@ export default function ProjectBoard() {
 
                     <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
                       <DialogTrigger asChild>
-                        <Button className="min-h-11 sm:min-w-36" type="button">
+                        <Button className="h-12 sm:min-w-36" type="button">
                           <Plus className="h-4 w-4" />
                           New card
                         </Button>
@@ -597,7 +597,7 @@ export default function ProjectBoard() {
 
                     <Button
                       aria-label="Sign out"
-                      className="min-h-11 sm:w-11 lg:hidden"
+                      className="h-12 sm:w-12 lg:hidden"
                       disabled={authLoading}
                       onClick={handleSignOut}
                       size="icon"
