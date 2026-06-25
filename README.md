@@ -32,10 +32,10 @@ NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
 ```
 
-The auth ownership migration adds `project_cards.user_id`, creates user profiles from `auth.users`,
-restricts card access to the owning user, and creates a starter card when a new user signs up.
+The auth ownership migrations add `project_cards.user_id`, create user profiles from `auth.users`,
+restrict card access to the owning user, and create starter cards when a new user signs up.
 If the app shows `column project_cards.user_id does not exist`, run
-`supabase/migrations/20260624120000_add_auth_users_and_card_ownership.sql` against the connected Supabase project.
+the latest migration in `supabase/migrations` against the connected Supabase project.
 
 ## Vercel Setup
 
