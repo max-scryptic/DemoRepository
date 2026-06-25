@@ -1,19 +1,17 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
-import type { Session, User } from "@supabase/supabase-js";
+import type { Session } from "@supabase/supabase-js";
 import {
-  AlertCircle,
   Check,
   CirclePlus,
-  FolderKanban,
   GripVertical,
+  KeyRound,
   Loader2,
   LogOut,
+  Mail,
   Plus,
   Search,
-  Settings,
   ShieldCheck,
   Trash2
 } from "lucide-react";
@@ -42,15 +40,7 @@ const emptyDraft: CardDraft = {
   labels: ""
 };
 
-const emptyAuthForm = {
-  email: "",
-  password: ""
-};
-
-type AuthMode = "login" | "signup";
-type AuthMessageTone = "warning" | "error";
-
-const themeStorageKey = "project-board-theme";
+type AuthMode = "sign-in" | "forgot-password" | "update-password";
 
 export default function ProjectBoard() {
   const [session, setSession] = useState<Session | null>(null);
@@ -65,6 +55,58 @@ export default function ProjectBoard() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode>("sign-in");
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [authLoading, setAuthLoading] = useState(Boolean(supabase));
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!supabase) {
+      return;
+    }
+
+    const supabaseClient = supabase;
+    let ignore = false;
+
+    async function loadSession() {
+      const { data, error } = await supabaseClient.auth.getSession();
+
+      if (ignore) {
+        return;
+      }
+
+      if (error) {
+        setAuthError(error.message);
+      } else {
+        setSession(data.session);
+      }
+
+      setAuthLoading(false);
+    }
+
+    loadSession();
+
+    const {
+      data: { subscription }
+    } = supabaseClient.auth.onAuthStateChange((event, nextSession) => {
+      setSession(nextSession);
+
+      if (event === "PASSWORD_RECOVERY") {
+        setAuthMode("update-password");
+        setAuthMessage("Choose a new password to finish resetting your account.");
+      }
+    });
+
+    return () => {
+      ignore = true;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!supabase) {
@@ -101,10 +143,14 @@ export default function ProjectBoard() {
         return;
       }
 
-      setLoading(true);
-      setNotice(null);
+      if (!session) {
+        setLoading(false);
+        return;
+      }
 
-      const { data, error } = await supabase
+      const supabaseClient = supabase;
+      setLoading(true);
+      const { data, error } = await supabaseClient
         .from(cardsTable)
         .select("*")
         .eq("user_id", session.user.id)
@@ -129,7 +175,7 @@ export default function ProjectBoard() {
     return () => {
       ignore = true;
     };
-  }, [session?.user]);
+  }, [session]);
 
   const filteredCards = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -156,6 +202,113 @@ export default function ProjectBoard() {
       {} as Record<Status, BoardCard[]>
     );
   }, [filteredCards]);
+
+  async function handleSignIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!supabase) {
+      setAuthError("Supabase is not configured for authentication.");
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthError(null);
+    setAuthMessage(null);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: authEmail.trim(),
+      password: authPassword
+    });
+
+    if (error) {
+      setAuthError(error.message);
+    } else {
+      setAuthPassword("");
+    }
+
+    setAuthLoading(false);
+  }
+
+  async function handlePasswordResetRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!supabase) {
+      setAuthError("Supabase is not configured for authentication.");
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthError(null);
+    setAuthMessage(null);
+
+    const redirectTo =
+      typeof window === "undefined" ? undefined : `${window.location.origin}${window.location.pathname}`;
+    const { error } = await supabase.auth.resetPasswordForEmail(authEmail.trim(), {
+      redirectTo
+    });
+
+    if (error) {
+      setAuthError(error.message);
+    } else {
+      setAuthMessage("Check your email for a reset link. It will bring you back here.");
+    }
+
+    setAuthLoading(false);
+  }
+
+  async function handlePasswordUpdate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!supabase) {
+      setAuthError("Supabase is not configured for authentication.");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setAuthError("Use at least 8 characters for the new password.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setAuthError("The new passwords do not match.");
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthError(null);
+    setAuthMessage(null);
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+    if (error) {
+      setAuthError(error.message);
+    } else {
+      setNewPassword("");
+      setConfirmPassword("");
+      setAuthMessage("Password updated. You can keep working on the board.");
+      setAuthMode("sign-in");
+    }
+
+    setAuthLoading(false);
+  }
+
+  async function handleSignOut() {
+    if (!supabase) {
+      return;
+    }
+
+    setAuthLoading(true);
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      setAuthError(error.message);
+    } else {
+      setAuthPassword("");
+      setAuthMode("sign-in");
+    }
+
+    setAuthLoading(false);
+  }
 
   async function persistCards(nextCards: BoardCard[]) {
     if (!supabase || !session?.user) {
@@ -255,6 +408,34 @@ export default function ProjectBoard() {
   }
 
   const totalDone = cards.filter((card) => card.status === "done").length;
+  const shouldShowAuth = Boolean(supabase && (!session || authMode === "update-password"));
+
+  if (shouldShowAuth) {
+    return (
+      <AuthPanel
+        authEmail={authEmail}
+        authError={authError}
+        authLoading={authLoading}
+        authMessage={authMessage}
+        authMode={authMode}
+        authPassword={authPassword}
+        confirmPassword={confirmPassword}
+        newPassword={newPassword}
+        onEmailChange={setAuthEmail}
+        onForgotPassword={handlePasswordResetRequest}
+        onModeChange={(mode) => {
+          setAuthError(null);
+          setAuthMessage(null);
+          setAuthMode(mode);
+        }}
+        onNewPasswordChange={setNewPassword}
+        onPasswordChange={setAuthPassword}
+        onPasswordConfirmChange={setConfirmPassword}
+        onPasswordUpdate={handlePasswordUpdate}
+        onSignIn={handleSignIn}
+      />
+    );
+  }
 
   if (authLoading) {
     return (
@@ -276,32 +457,18 @@ export default function ProjectBoard() {
       className="min-h-screen bg-slate-50 text-slate-950"
       onPointerUp={() => setPointerDraggedId(null)}
     >
-      <div className="flex min-h-screen">
-        <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white px-4 py-5 lg:flex lg:flex-col">
-          <div className="flex items-center gap-2 px-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-950 text-white">
-              <FolderKanban className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-950">Project Board</p>
-              <p className="text-xs text-slate-500">{getUserDisplayName(session.user)}</p>
-            </div>
-          </div>
-
-          <nav className="mt-8 space-y-1">
-            <SidebarItem active icon={<FolderKanban className="h-4 w-4" />} label="Projects" />
-            <SidebarItem icon={<Settings className="h-4 w-4" />} label="Settings" />
-          </nav>
-
-          <div className="mt-auto space-y-3 border-t border-slate-200 pt-4">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-              <p className="truncate text-sm font-medium text-slate-900">{getUserDisplayName(session.user)}</p>
-              <p className="truncate text-xs text-slate-500">{session.user.email}</p>
-            </div>
-            <Button className="w-full justify-start text-slate-600" onClick={handleSignOut} type="button" variant="ghost">
-              <LogOut className="h-4 w-4" />
-              Log out
-            </Button>
+      <section className="mx-auto flex max-w-[1520px] flex-col gap-5">
+        <header className="grid gap-4 border-b border-slate-200 pb-5 lg:grid-cols-[minmax(220px,0.85fr)_minmax(360px,1fr)_minmax(300px,0.7fr)] lg:items-end">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
+              Project management
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
+              Project Board
+            </h1>
+            {session?.user.email && (
+              <p className="mt-2 truncate text-sm text-slate-500">{session.user.email}</p>
+            )}
           </div>
         </aside>
 
@@ -372,16 +539,30 @@ export default function ProjectBoard() {
                         placeholder="Design, Launch"
                       />
 
-                      <StatusPicker value={draftStatus} onChange={setDraftStatus} />
-
-                      <Button className="mt-1 min-h-11" disabled={saving} type="submit">
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                        Add card
-                      </Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
+                    <Button className="mt-1 min-h-11" disabled={saving} type="submit">
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      Add card
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+              {supabase && session && (
+                <Button
+                  aria-label="Sign out"
+                  className="min-h-11 sm:w-11"
+                  disabled={authLoading}
+                  onClick={handleSignOut}
+                  size="icon"
+                  type="button"
+                  variant="secondary"
+                >
+                  {authLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LogOut className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -873,96 +1054,174 @@ function AuthPanel() {
   );
 }
 
-type PasswordStrength = {
-  label: string;
-  score: number;
-  isStrong: boolean;
-  checks: Array<{ label: string; met: boolean }>;
-};
-
-function PasswordStrengthMeter({ strength }: { strength: PasswordStrength }) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-slate-800">Password strength</p>
-        <p className={cn("text-xs font-semibold", strength.isStrong ? "text-teal-700" : "text-slate-500")}>
-          {strength.label}
-        </p>
-      </div>
-      <div className="grid grid-cols-5 gap-1">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <span
-            className={cn(
-              "h-1.5 rounded-full",
-              index < strength.score ? "bg-teal-600" : "bg-slate-200"
-            )}
-            key={index}
-          />
-        ))}
-      </div>
-      <div className="mt-3 grid gap-1.5">
-        {strength.checks.map((check) => (
-          <div
-            className={cn("flex items-center gap-2 text-xs", check.met ? "text-slate-700" : "text-slate-500")}
-            key={check.label}
-          >
-            <Check className={cn("h-3.5 w-3.5", check.met ? "text-teal-700" : "text-slate-300")} />
-            {check.label}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function GoogleLogo({ className }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" className={className} viewBox="0 0 24 24">
-      <path
-        d="M21.6 12.23c0-.75-.07-1.47-.2-2.16H12v4.09h5.38a4.6 4.6 0 0 1-2 3.01v2.5h3.24c1.89-1.74 2.98-4.31 2.98-7.44Z"
-        fill="#4285F4"
-      />
-      <path
-        d="M12 22c2.7 0 4.96-.9 6.62-2.43l-3.24-2.5c-.9.6-2.04.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.07v2.58A10 10 0 0 0 12 22Z"
-        fill="#34A853"
-      />
-      <path
-        d="M6.41 13.91a6.01 6.01 0 0 1 0-3.82V7.51H3.07a10 10 0 0 0 0 8.98l3.34-2.58Z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M12 5.97c1.47 0 2.78.5 3.82 1.49l2.87-2.87C16.95 2.97 14.69 2 12 2a10 10 0 0 0-8.93 5.51l3.34 2.58C7.2 7.73 9.4 5.97 12 5.97Z"
-        fill="#EA4335"
-      />
-    </svg>
-  );
-}
-
-function applyLightThemePreference() {
-  window.localStorage.setItem(themeStorageKey, "light");
-  document.documentElement.classList.remove("dark");
-}
-
-function SidebarItem({
-  active = false,
-  icon,
-  label
+function AuthPanel({
+  authEmail,
+  authError,
+  authLoading,
+  authMessage,
+  authMode,
+  authPassword,
+  confirmPassword,
+  newPassword,
+  onEmailChange,
+  onForgotPassword,
+  onModeChange,
+  onNewPasswordChange,
+  onPasswordChange,
+  onPasswordConfirmChange,
+  onPasswordUpdate,
+  onSignIn
 }: {
-  active?: boolean;
-  icon: ReactNode;
-  label: string;
+  authEmail: string;
+  authError: string | null;
+  authLoading: boolean;
+  authMessage: string | null;
+  authMode: AuthMode;
+  authPassword: string;
+  confirmPassword: string;
+  newPassword: string;
+  onEmailChange: (value: string) => void;
+  onForgotPassword: (event: FormEvent<HTMLFormElement>) => void;
+  onModeChange: (mode: AuthMode) => void;
+  onNewPasswordChange: (value: string) => void;
+  onPasswordChange: (value: string) => void;
+  onPasswordConfirmChange: (value: string) => void;
+  onPasswordUpdate: (event: FormEvent<HTMLFormElement>) => void;
+  onSignIn: (event: FormEvent<HTMLFormElement>) => void;
 }) {
+  const isUpdatingPassword = authMode === "update-password";
+  const isRequestingReset = authMode === "forgot-password";
+
   return (
-    <button
-      className={cn(
-        "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition",
-        active ? "bg-slate-100 text-slate-950" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
-      )}
-      type="button"
-    >
-      {icon}
-      {label}
-    </button>
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 text-slate-950">
+      <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-6 flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-teal-200 bg-teal-50 text-teal-700">
+            {isUpdatingPassword ? <ShieldCheck className="h-5 w-5" /> : <KeyRound className="h-5 w-5" />}
+          </div>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-teal-700">
+              Project Board
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-normal text-slate-950">
+              {isUpdatingPassword
+                ? "Set a new password"
+                : isRequestingReset
+                  ? "Reset your password"
+                  : "Sign in"}
+            </h1>
+            <p className="mt-2 text-sm leading-5 text-slate-600">
+              {isUpdatingPassword
+                ? "Enter a new password for your account."
+                : isRequestingReset
+                  ? "We will email you a secure link to continue."
+                  : "Use your workspace account to open the board."}
+            </p>
+          </div>
+        </div>
+
+        {authError && (
+          <p className="mb-4 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {authError}
+          </p>
+        )}
+
+        {authMessage && (
+          <p className="mb-4 rounded-md border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-800">
+            {authMessage}
+          </p>
+        )}
+
+        {isUpdatingPassword ? (
+          <form className="grid gap-3" onSubmit={onPasswordUpdate}>
+            <Label htmlFor="new-password">New password</Label>
+            <Input
+              autoComplete="new-password"
+              id="new-password"
+              minLength={8}
+              onChange={(event) => onNewPasswordChange(event.target.value)}
+              required
+              type="password"
+              value={newPassword}
+            />
+
+            <Label htmlFor="confirm-password">Confirm password</Label>
+            <Input
+              autoComplete="new-password"
+              id="confirm-password"
+              minLength={8}
+              onChange={(event) => onPasswordConfirmChange(event.target.value)}
+              required
+              type="password"
+              value={confirmPassword}
+            />
+
+            <Button className="mt-2 min-h-11" disabled={authLoading} type="submit">
+              {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              Update password
+            </Button>
+          </form>
+        ) : (
+          <form className="grid gap-3" onSubmit={isRequestingReset ? onForgotPassword : onSignIn}>
+            <Label htmlFor="auth-email">Email</Label>
+            <Input
+              autoComplete="email"
+              id="auth-email"
+              onChange={(event) => onEmailChange(event.target.value)}
+              placeholder="you@company.com"
+              required
+              type="email"
+              value={authEmail}
+            />
+
+            {!isRequestingReset && (
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="auth-password">Password</Label>
+                  <button
+                    className="text-sm font-medium text-teal-700 hover:text-teal-900"
+                    onClick={() => onModeChange("forgot-password")}
+                    type="button"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <Input
+                  autoComplete="current-password"
+                  id="auth-password"
+                  onChange={(event) => onPasswordChange(event.target.value)}
+                  required
+                  type="password"
+                  value={authPassword}
+                />
+              </>
+            )}
+
+            <Button className="mt-2 min-h-11" disabled={authLoading} type="submit">
+              {authLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isRequestingReset ? (
+                <Mail className="h-4 w-4" />
+              ) : (
+                <KeyRound className="h-4 w-4" />
+              )}
+              {isRequestingReset ? "Send reset link" : "Sign in"}
+            </Button>
+
+            {isRequestingReset && (
+              <Button
+                className="min-h-11"
+                onClick={() => onModeChange("sign-in")}
+                type="button"
+                variant="secondary"
+              >
+                Back to sign in
+              </Button>
+            )}
+          </form>
+        )}
+      </section>
+    </main>
   );
 }
 
