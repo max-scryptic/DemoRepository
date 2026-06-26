@@ -110,16 +110,6 @@ export function ProjectSidebar({
                   <span>Project Board</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={activeView === "settings"}
-                  onClick={() => onViewChange("settings")}
-                  type="button"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span>Settings</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -158,6 +148,10 @@ export function ProjectSidebar({
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => onViewChange("settings")}>
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
                 <DropdownMenuItem disabled={signOutLoading} onSelect={onSignOut}>
                   {signOutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
                   Log out
