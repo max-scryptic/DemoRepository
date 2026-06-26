@@ -12,12 +12,10 @@ import {
   Loader2,
   LogOut,
   Mail,
-  Moon,
   Plus,
   Search,
   Settings,
   ShieldCheck,
-  Sun,
   Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
+import { ModeToggle } from "@/components/mode-toggle";
 import { ProjectSidebar } from "@/components/project-sidebar";
 import { cardsTable, isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -399,8 +398,8 @@ export default function ProjectBoard() {
 
   if (authLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-slate-950">
-        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm">
+      <main className="flex min-h-screen items-center justify-center bg-background px-4 text-foreground">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm shadow-sm">
           <Loader2 className="h-4 w-4 animate-spin text-teal-700" />
           Loading workspace
         </div>
@@ -422,7 +421,7 @@ export default function ProjectBoard() {
 
   return (
     <main
-      className="min-h-screen bg-slate-50 text-slate-950"
+      className="min-h-screen bg-background text-foreground"
       onPointerUp={() => setPointerDraggedId(null)}
     >
       <SidebarProvider>
@@ -436,9 +435,12 @@ export default function ProjectBoard() {
         />
 
         <SidebarInset>
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4">
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-4">
             <SidebarTrigger className="-ml-1 hidden md:inline-flex" />
             <Separator className="mr-2 hidden h-4 md:block" orientation="vertical" />
+            <div className="ml-auto flex items-center gap-2">
+              <ModeToggle />
+            </div>
           </header>
 
           <section className="flex min-w-0 flex-1 flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
@@ -698,24 +700,6 @@ function SettingsView({
   deleteAccountLoading: boolean;
   onDeleteAccount: () => void;
 }) {
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    if (typeof window === "undefined") {
-      return "light";
-    }
-
-    const savedTheme = window.localStorage.getItem("project-board-theme");
-    return savedTheme === "dark" ? "dark" : "light";
-  });
-
-  useEffect(() => {
-    window.localStorage.setItem("project-board-theme", theme);
-    document.documentElement.classList.toggle("dark", theme === "dark");
-  }, [theme]);
-
-  function updateTheme(nextTheme: "light" | "dark") {
-    setTheme(nextTheme);
-  }
-
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5 group-data-[state=collapsed]/sidebar-wrapper:max-w-none">
       <header className="border-b border-border pb-5">
@@ -733,38 +717,7 @@ function SettingsView({
               <p className="mt-1 text-sm leading-6 text-muted-foreground">Choose how the app should look.</p>
             </div>
 
-            <div
-              aria-label="Theme"
-              className="grid grid-cols-2 rounded-xl border border-border bg-muted p-1"
-              role="group"
-            >
-              <Button
-                aria-pressed={theme === "light"}
-                className={cn(
-                  "h-9 rounded-lg px-3 shadow-none",
-                  theme === "light" ? "bg-card text-foreground shadow-sm" : "bg-transparent text-muted-foreground"
-                )}
-                onClick={() => updateTheme("light")}
-                type="button"
-                variant="ghost"
-              >
-                <Sun className="h-4 w-4" />
-                Light
-              </Button>
-              <Button
-                aria-pressed={theme === "dark"}
-                className={cn(
-                  "h-9 rounded-lg px-3 shadow-none",
-                  theme === "dark" ? "bg-card text-foreground shadow-sm" : "bg-transparent text-muted-foreground"
-                )}
-                onClick={() => updateTheme("dark")}
-                type="button"
-                variant="ghost"
-              >
-                <Moon className="h-4 w-4" />
-                Dark
-              </Button>
-            </div>
+            <ModeToggle />
           </div>
         </Card>
 

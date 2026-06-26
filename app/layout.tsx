@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,24 +14,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-(() => {
-  try {
-    const savedTheme = window.localStorage.getItem("project-board-theme");
-    const useDark = savedTheme === "dark";
-    document.documentElement.classList.toggle("dark", useDark);
-  } catch {
-    document.documentElement.classList.remove("dark");
-  }
-})();
-            `.trim()
-          }}
-        />
-      </head>
-      <body>{children}</body>
+      <body>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          disableTransitionOnChange
+          enableSystem
+          storageKey="project-board-theme"
+        >
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
