@@ -211,14 +211,24 @@ SidebarInput.displayName = "SidebarInput";
 
 const SidebarHeader = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
   ({ className, ...props }, ref) => (
-    <div className={cn("flex flex-col gap-2 p-3", className)} data-sidebar="header" ref={ref} {...props} />
+    <div
+      className={cn("flex flex-col gap-2 p-3 group-data-[collapsible=icon]:items-center", className)}
+      data-sidebar="header"
+      ref={ref}
+      {...props}
+    />
   )
 );
 SidebarHeader.displayName = "SidebarHeader";
 
 const SidebarFooter = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
   ({ className, ...props }, ref) => (
-    <div className={cn("mt-auto flex flex-col gap-2 p-3", className)} data-sidebar="footer" ref={ref} {...props} />
+    <div
+      className={cn("mt-auto flex flex-col gap-2 p-3 group-data-[collapsible=icon]:items-center", className)}
+      data-sidebar="footer"
+      ref={ref}
+      {...props}
+    />
   )
 );
 SidebarFooter.displayName = "SidebarFooter";
@@ -299,7 +309,7 @@ const SidebarMenuItem = React.forwardRef<HTMLLIElement, React.ComponentProps<"li
 SidebarMenuItem.displayName = "SidebarMenuItem";
 
 const sidebarMenuButtonVariants = cva(
-  "flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm font-medium outline-none ring-sidebar-ring transition-[color,background,width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground group-data-[collapsible=icon]:!h-10 group-data-[collapsible=icon]:!w-10 group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm font-medium outline-none ring-sidebar-ring transition-[color,background,width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground group-data-[collapsible=icon]:!h-10 group-data-[collapsible=icon]:!w-10 group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!gap-0 group-data-[collapsible=icon]:!p-2 group-data-[collapsible=icon]:[&>span:not(:first-child)]:hidden group-data-[collapsible=icon]:[&>svg:last-child]:hidden [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       size: {
@@ -339,7 +349,11 @@ const SidebarSeparator = React.forwardRef<
   React.ElementRef<typeof Separator>,
   React.ComponentProps<typeof Separator>
 >(({ className, ...props }, ref) => (
-  <Separator className={cn("mx-2 w-auto bg-sidebar-border", className)} ref={ref} {...props} />
+  <Separator
+    className={cn("mx-2 w-auto bg-sidebar-border group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:w-8", className)}
+    ref={ref}
+    {...props}
+  />
 ));
 SidebarSeparator.displayName = "SidebarSeparator";
 
