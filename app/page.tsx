@@ -438,6 +438,11 @@ export default function ProjectBoard() {
           <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background px-4">
             <SidebarTrigger className="-ml-1 hidden md:inline-flex" />
             <Separator className="mr-2 hidden h-4 md:block" orientation="vertical" />
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-semibold text-foreground">
+                {activeView === "settings" ? "Settings" : "Project Board"}
+              </h1>
+            </div>
             <div className="ml-auto flex items-center gap-2">
               <ModeToggle />
             </div>
@@ -470,43 +475,37 @@ export default function ProjectBoard() {
             />
           ) : (
             <>
-              <header className="mx-auto grid w-full max-w-[1200px] gap-4 border-b border-border pb-5 group-data-[state=collapsed]/sidebar-wrapper:max-w-none lg:grid-cols-[minmax(220px,1fr)_minmax(360px,520px)_minmax(220px,260px)] lg:items-end">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-400">
-                    Project management
-                  </p>
-                  <h1 className="mt-2 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
-                    Project Board
-                  </h1>
+              <header className="mx-auto flex w-full max-w-[1200px] flex-col gap-3 border-b border-border pb-5 group-data-[state=collapsed]/sidebar-wrapper:max-w-none lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-ring lg:max-w-md">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <input
+                    id="search"
+                    className="h-11 w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search cards"
+                    value={query}
+                  />
                 </div>
 
-                <div className="w-full rounded-xl border border-border bg-card p-3 shadow-sm lg:justify-self-end">
-                  <div className="flex flex-col gap-3 sm:h-12 sm:flex-row sm:items-stretch">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex h-12 items-center gap-2 rounded-lg border border-input bg-background px-3 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-ring">
-                        <Search className="h-4 w-4 text-muted-foreground" />
-                        <input
-                          id="search"
-                          className="w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-                          onChange={(event) => setQuery(event.target.value)}
-                          placeholder="Title, label, or description"
-                          value={query}
-                        />
-                      </div>
-                    </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:justify-end">
+                  <div className="flex items-center gap-6">
+                    <Metric label="Cards" value={cards.length.toString()} />
+                    <Metric label="Done" value={totalDone.toString()} />
+                  </div>
 
+                  <div className="flex items-center gap-2">
                     <Dialog open={isNewCardOpen} onOpenChange={setIsNewCardOpen}>
                       <DialogTrigger asChild>
-                        <Button className="h-12 sm:min-w-36" type="button">
+                        <Button className="h-11 sm:min-w-32" type="button">
                           <Plus className="h-4 w-4" />
-                          New card
+                          Add card
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle className="flex items-center gap-2">
                             <CirclePlus className="h-5 w-5 text-teal-700" />
-                            New card
+                            Add card
                           </DialogTitle>
                         </DialogHeader>
 
@@ -548,7 +547,7 @@ export default function ProjectBoard() {
 
                     <Button
                       aria-label="Sign out"
-                      className="h-12 sm:w-12 lg:hidden"
+                      className="h-11 sm:w-11 lg:hidden"
                       disabled={authLoading}
                       onClick={handleSignOut}
                       size="icon"
@@ -558,11 +557,6 @@ export default function ProjectBoard() {
                       {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
                     </Button>
                   </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2 lg:w-full lg:justify-self-end">
-                  <Metric label="Cards" value={cards.length.toString()} />
-                  <Metric label="Done" value={totalDone.toString()} />
                 </div>
               </header>
 
@@ -1277,10 +1271,10 @@ function AuthPanel({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <Card className="rounded-xl px-4 py-3">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-foreground">{value}</p>
-    </Card>
+    <div className="flex items-baseline gap-2 whitespace-nowrap">
+      <span className="text-xl font-semibold text-foreground">{value}</span>
+      <span className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
+    </div>
   );
 }
 
