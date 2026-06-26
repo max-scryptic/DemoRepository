@@ -54,7 +54,7 @@ export function ProjectSidebar({
                   className="h-12 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                   type="button"
                 >
-                  <div className="flex aspect-square size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-950">
+                  <div className="flex aspect-square size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-950 group-data-[collapsible=icon]:size-6 group-data-[collapsible=icon]:rounded-md">
                     <Image
                       alt="Scryptic logo"
                       className="h-full w-full object-contain"
@@ -125,7 +125,7 @@ export function ProjectSidebar({
                   className="h-12 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                   type="button"
                 >
-                  <span className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold uppercase text-slate-700">
+                  <span className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold uppercase text-slate-700 group-data-[collapsible=icon]:size-6 group-data-[collapsible=icon]:rounded-md group-data-[collapsible=icon]:text-[10px]">
                     {getUserInitials(userName, user.email)}
                   </span>
                   <span className="grid min-w-0 flex-1 text-left text-sm leading-tight">
