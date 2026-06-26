@@ -1,9 +1,16 @@
 "use client";
 
 import type { User } from "@supabase/supabase-js";
-import { FolderKanban, Loader2, LogOut, Settings } from "lucide-react";
+import { ChevronsUpDown, FolderKanban, Loader2, LogOut, Settings } from "lucide-react";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -38,24 +45,52 @@ export function ProjectSidebar({
 }: ProjectSidebarProps) {
   return (
     <Sidebar>
-      <SidebarHeader className="group-data-[collapsible=icon]:items-center">
+      <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton className="h-12 group-data-[collapsible=icon]:!h-10 group-data-[collapsible=icon]:!w-10" type="button">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black">
-                <Image
-                  alt="Scryptic logo"
-                  className="h-full w-full object-contain"
-                  height={32}
-                  src="/scryptic-logo-white.png"
-                  width={32}
-                />
-              </div>
-              <span className="flex min-w-0 flex-col gap-0.5 leading-none">
-                <span className="truncate font-semibold">Scryptic</span>
-                <span className="truncate text-xs font-normal text-sidebar-foreground/65">{userName}</span>
-              </span>
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  className="h-12 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  type="button"
+                >
+                  <div className="flex aspect-square size-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-950">
+                    <Image
+                      alt="Scryptic logo"
+                      className="h-full w-full object-contain"
+                      height={32}
+                      src="/scryptic-logo-white.png"
+                      width={32}
+                    />
+                  </div>
+                  <span className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">Scryptic</span>
+                    <span className="truncate text-xs font-normal text-sidebar-foreground/60">Workspace</span>
+                  </span>
+                  <ChevronsUpDown className="ml-auto" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="w-56 rounded-lg"
+                side="bottom"
+                sideOffset={4}
+              >
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Workspace</DropdownMenuLabel>
+                <DropdownMenuItem className="gap-2 p-2">
+                  <div className="flex size-6 items-center justify-center overflow-hidden rounded-md bg-slate-950">
+                    <Image
+                      alt="Scryptic logo"
+                      className="h-full w-full object-contain"
+                      height={24}
+                      src="/scryptic-logo-white.png"
+                      width={24}
+                    />
+                  </div>
+                  <span className="font-medium">Scryptic</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
@@ -90,25 +125,60 @@ export function ProjectSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="group-data-[collapsible=icon]:items-center">
+      <SidebarFooter>
         <SidebarSeparator />
-        <div className="rounded-lg border border-sidebar-border bg-background px-3 py-2 group-data-[collapsible=icon]:hidden">
-          <p className="truncate text-sm font-medium text-sidebar-foreground">{userName}</p>
-          <p className="truncate text-xs text-sidebar-foreground/60">{user.email}</p>
-        </div>
-        <Button
-          className="justify-start rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-          disabled={signOutLoading}
-          onClick={onSignOut}
-          title="Log out"
-          type="button"
-          variant="ghost"
-        >
-          {signOutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-          <span className="group-data-[collapsible=icon]:sr-only">Log out</span>
-        </Button>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  className="h-12 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  type="button"
+                >
+                  <span className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold uppercase text-slate-700">
+                    {getUserInitials(userName, user.email)}
+                  </span>
+                  <span className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">{userName}</span>
+                    <span className="truncate text-xs font-normal text-sidebar-foreground/60">{user.email}</span>
+                  </span>
+                  <ChevronsUpDown className="ml-auto" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 rounded-lg" side="right" sideOffset={8}>
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold uppercase text-slate-700">
+                      {getUserInitials(userName, user.email)}
+                    </span>
+                    <span className="grid min-w-0 flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">{userName}</span>
+                      <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                    </span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled={signOutLoading} onSelect={onSignOut}>
+                  {signOutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );
+}
+
+function getUserInitials(name: string, email?: string) {
+  const source = name.trim() || email?.split("@")[0] || "U";
+  const initials = source
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2);
+
+  return initials || "U";
 }
