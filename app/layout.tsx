@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BrowserThemeMeta } from "@/components/browser-theme-meta";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
@@ -22,6 +23,7 @@ export default function RootLayout({
           enableSystem
           storageKey="project-board-theme"
         >
+          <BrowserThemeMeta />
           {children}
         </ThemeProvider>
       </body>
