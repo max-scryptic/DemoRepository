@@ -439,7 +439,7 @@ export default function ProjectBoard() {
             />
           ) : (
             <>
-              <header className="mx-auto grid w-full max-w-[1200px] gap-4 border-b border-slate-200 pb-5 group-data-[state=collapsed]/sidebar-wrapper:max-w-none lg:grid-cols-[minmax(220px,0.85fr)_minmax(300px,0.7fr)_minmax(360px,1fr)] lg:items-end">
+              <header className="mx-auto grid w-full max-w-[1200px] gap-4 border-b border-slate-200 pb-5 group-data-[state=collapsed]/sidebar-wrapper:max-w-none lg:grid-cols-[minmax(220px,1fr)_minmax(360px,520px)_minmax(220px,260px)] lg:items-end">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
                     Project management
@@ -447,17 +447,9 @@ export default function ProjectBoard() {
                   <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
                     Project Board
                   </h1>
-                  <p className="mt-2 truncate text-sm text-slate-500">
-                    {getUserDisplayName(session.user)} · {session.user.email}
-                  </p>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Metric label="Cards" value={cards.length.toString()} />
-                  <Metric label="Done" value={totalDone.toString()} />
-                </div>
-
-                <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm lg:justify-self-end">
+                <div className="w-full rounded-xl border border-slate-200 bg-white p-3 shadow-sm lg:justify-self-end">
                   <div className="flex flex-col gap-3 sm:h-12 sm:flex-row sm:items-stretch">
                     <div className="min-w-0 flex-1">
                       <div className="flex h-12 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
@@ -535,6 +527,11 @@ export default function ProjectBoard() {
                       {authLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
                     </Button>
                   </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:w-full lg:justify-self-end">
+                  <Metric label="Cards" value={cards.length.toString()} />
+                  <Metric label="Done" value={totalDone.toString()} />
                 </div>
               </header>
 
