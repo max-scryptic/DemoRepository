@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { BrowserThemeMeta } from "@/components/browser-theme-meta";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
@@ -6,6 +6,14 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Project Board",
   description: "A Trello-style project management board."
+};
+
+export const viewport: Viewport = {
+  colorScheme: "light dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#020617" }
+  ]
 };
 
 export default function RootLayout({
