@@ -12,16 +12,18 @@ import {
   Loader2,
   LogOut,
   Mail,
+  Moon,
   Plus,
   Search,
   Settings,
   ShieldCheck,
+  Sun,
   Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -82,6 +84,7 @@ export default function ProjectBoard() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [authRedirectMessage, setAuthRedirectMessage] = useState<string | null>(null);
   const [authRedirectTone, setAuthRedirectTone] = useState<AuthMessageTone>("warning");
@@ -362,6 +365,36 @@ export default function ProjectBoard() {
     setAuthLoading(false);
   }
 
+  async function handleDeleteAccount() {
+    if (!supabase || !session?.user) {
+      return;
+    }
+
+    const userId = session.user.id;
+    setDeletingAccount(true);
+
+    const { error: deleteCardsError } = await supabase.from(cardsTable).delete().eq("user_id", userId);
+
+    if (deleteCardsError) {
+      setNotice(`Account data could not be deleted: ${deleteCardsError.message}`);
+      setDeletingAccount(false);
+      return;
+    }
+
+    const { error: signOutError } = await supabase.auth.signOut();
+
+    if (signOutError) {
+      setNotice(`Account data was deleted, but sign out failed: ${signOutError.message}`);
+    } else {
+      setCards([]);
+      setNotice(null);
+      setAuthMode("login");
+      setSession(null);
+    }
+
+    setDeletingAccount(false);
+  }
+
   const totalDone = cards.filter((card) => card.status === "done").length;
 
   if (authLoading) {
@@ -430,12 +463,8 @@ export default function ProjectBoard() {
 
           {activeView === "settings" ? (
             <SettingsView
-              cardsCount={cards.length}
-              doneCount={totalDone}
-              email={session.user.email ?? ""}
-              onSignOut={handleSignOut}
-              signOutLoading={authLoading}
-              userName={getUserDisplayName(session.user)}
+              deleteAccountLoading={deletingAccount}
+              onDeleteAccount={handleDeleteAccount}
             />
           ) : (
             <>
@@ -663,71 +692,118 @@ export default function ProjectBoard() {
 }
 
 function SettingsView({
-  cardsCount,
-  doneCount,
-  email,
-  onSignOut,
-  signOutLoading,
-  userName
+  deleteAccountLoading,
+  onDeleteAccount
 }: {
-  cardsCount: number;
-  doneCount: number;
-  email: string;
-  onSignOut: () => void;
-  signOutLoading: boolean;
-  userName: string;
+  deleteAccountLoading: boolean;
+  onDeleteAccount: () => void;
 }) {
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") {
+      return "light";
+    }
+
+    const savedTheme = window.localStorage.getItem("project-board-theme");
+    return savedTheme === "dark" ? "dark" : "light";
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem("project-board-theme", theme);
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
+
+  function updateTheme(nextTheme: "light" | "dark") {
+    setTheme(nextTheme);
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5 group-data-[state=collapsed]/sidebar-wrapper:max-w-none">
-      <header className="border-b border-slate-200 pb-5">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
-          Workspace preferences
+      <header className="border-b border-border pb-5">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-400">
+          Preferences
         </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
-          Settings
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-          Manage your account and workspace overview.
-        </p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">Settings</h1>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-4">
-          <Card className="p-5 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <h2 className="text-base font-semibold text-slate-950">Account</h2>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Signed in as {userName}.
-                </p>
-                {email && <p className="mt-1 truncate text-sm text-slate-600">{email}</p>}
-              </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="p-5 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Appearance</h2>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">Choose how the app should look.</p>
+            </div>
+
+            <div
+              aria-label="Theme"
+              className="grid grid-cols-2 rounded-xl border border-border bg-muted p-1"
+              role="group"
+            >
               <Button
-                className="sm:min-w-32"
-                disabled={signOutLoading}
-                onClick={onSignOut}
+                aria-pressed={theme === "light"}
+                className={cn(
+                  "h-9 rounded-lg px-3 shadow-none",
+                  theme === "light" ? "bg-card text-foreground shadow-sm" : "bg-transparent text-muted-foreground"
+                )}
+                onClick={() => updateTheme("light")}
                 type="button"
-                variant="outline"
+                variant="ghost"
               >
-                {signOutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-                Log out
+                <Sun className="h-4 w-4" />
+                Light
+              </Button>
+              <Button
+                aria-pressed={theme === "dark"}
+                className={cn(
+                  "h-9 rounded-lg px-3 shadow-none",
+                  theme === "dark" ? "bg-card text-foreground shadow-sm" : "bg-transparent text-muted-foreground"
+                )}
+                onClick={() => updateTheme("dark")}
+                type="button"
+                variant="ghost"
+              >
+                <Moon className="h-4 w-4" />
+                Dark
               </Button>
             </div>
-          </Card>
-
-          <Card className="p-5 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-950">Workspace</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-500">
-              Your board data is scoped to this signed-in user.
-            </p>
-          </Card>
-        </div>
+          </div>
+        </Card>
 
         <Card className="p-5 shadow-sm">
-          <h2 className="text-base font-semibold text-slate-950">Board summary</h2>
-          <div className="mt-4 grid gap-3">
-            <Metric label="Cards" value={cardsCount.toString()} />
-            <Metric label="Done" value={doneCount.toString()} />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Account</h2>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">Delete your account data from this workspace.</p>
+            </div>
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="sm:min-w-36" disabled={deleteAccountLoading} type="button" variant="destructive">
+                  {deleteAccountLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  Delete account
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete account?</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    This deletes your board data for this workspace and signs you out.
+                  </p>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <DialogClose asChild>
+                      <Button type="button" variant="outline">
+                        Cancel
+                      </Button>
+                    </DialogClose>
+                    <Button disabled={deleteAccountLoading} onClick={onDeleteAccount} type="button" variant="destructive">
+                      {deleteAccountLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      Delete account
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </Card>
       </div>
