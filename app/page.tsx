@@ -470,24 +470,24 @@ export default function ProjectBoard() {
             />
           ) : (
             <>
-              <header className="mx-auto grid w-full max-w-[1200px] gap-4 border-b border-slate-200 pb-5 group-data-[state=collapsed]/sidebar-wrapper:max-w-none lg:grid-cols-[minmax(220px,1fr)_minmax(360px,520px)_minmax(220px,260px)] lg:items-end">
+              <header className="mx-auto grid w-full max-w-[1200px] gap-4 border-b border-border pb-5 group-data-[state=collapsed]/sidebar-wrapper:max-w-none lg:grid-cols-[minmax(220px,1fr)_minmax(360px,520px)_minmax(220px,260px)] lg:items-end">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700">
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-teal-700 dark:text-teal-400">
                     Project management
                   </p>
-                  <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
+                  <h1 className="mt-2 text-3xl font-semibold tracking-normal text-foreground sm:text-4xl">
                     Project Board
                   </h1>
                 </div>
 
-                <div className="w-full rounded-xl border border-slate-200 bg-white p-3 shadow-sm lg:justify-self-end">
+                <div className="w-full rounded-xl border border-border bg-card p-3 shadow-sm lg:justify-self-end">
                   <div className="flex flex-col gap-3 sm:h-12 sm:flex-row sm:items-stretch">
                     <div className="min-w-0 flex-1">
-                      <div className="flex h-12 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-teal-500">
-                        <Search className="h-4 w-4 text-slate-500" />
+                      <div className="flex h-12 items-center gap-2 rounded-lg border border-input bg-background px-3 shadow-sm transition-colors focus-within:ring-2 focus-within:ring-ring">
+                        <Search className="h-4 w-4 text-muted-foreground" />
                         <input
                           id="search"
-                          className="w-full border-0 bg-transparent text-sm outline-none"
+                          className="w-full border-0 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
                           onChange={(event) => setQuery(event.target.value)}
                           placeholder="Title, label, or description"
                           value={query}
@@ -568,7 +568,7 @@ export default function ProjectBoard() {
 
               <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 group-data-[state=collapsed]/sidebar-wrapper:max-w-none">
                 {notice && (
-                  <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-200">
                     {notice}
                   </p>
                 )}
@@ -578,8 +578,8 @@ export default function ProjectBoard() {
                     {columns.map((column) => (
                       <div
                         key={column.id}
-                        className={`min-w-0 rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition ${
-                          pointerDraggedId || draggedId ? "ring-2 ring-teal-100" : ""
+                        className={`min-w-0 rounded-lg border border-border bg-card p-3 shadow-sm transition ${
+                          pointerDraggedId || draggedId ? "ring-2 ring-teal-100 dark:ring-teal-500/20" : ""
                         }`}
                         onDragOver={(event) => event.preventDefault()}
                         onDrop={(event) => {
@@ -596,21 +596,21 @@ export default function ProjectBoard() {
                         <div className="mb-3 flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <span className={`h-2.5 w-2.5 rounded-full ${column.accent}`} />
-                            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-700">
+                            <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-foreground">
                               {column.title}
                             </h2>
                           </div>
                           <Badge variant="secondary">{groupedCards[column.id].length}</Badge>
                         </div>
 
-                        <div className="flex min-h-[520px] flex-col gap-3 rounded-md bg-slate-50 p-2">
+                        <div className="flex min-h-[520px] flex-col gap-3 rounded-md bg-muted p-2">
                           {loading ? (
-                            <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-slate-300 py-6 text-sm text-slate-500">
+                            <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-border py-6 text-sm text-muted-foreground">
                               <Loader2 className="h-4 w-4 animate-spin" />
                               Loading
                             </div>
                           ) : groupedCards[column.id].length === 0 ? (
-                            <div className="rounded-md border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500">
+                            <div className="rounded-md border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
                               Drop cards here
                             </div>
                           ) : (
@@ -618,7 +618,7 @@ export default function ProjectBoard() {
                               <article
                                 key={card.id}
                                 draggable
-                                className={`rounded-md border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md ${
+                                className={`rounded-md border border-border bg-card p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-input hover:shadow-md ${
                                   pointerDraggedId === card.id || draggedId === card.id
                                     ? "cursor-grabbing opacity-75"
                                     : "cursor-grab"
@@ -641,12 +641,12 @@ export default function ProjectBoard() {
                               >
                                 <div className="mb-2 flex items-start justify-between gap-2">
                                   <div className="flex items-start gap-2">
-                                    <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                                    <h3 className="text-sm font-semibold leading-5 text-slate-950">{card.title}</h3>
+                                    <GripVertical className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                                    <h3 className="text-sm font-semibold leading-5 text-foreground">{card.title}</h3>
                                   </div>
                                   <Button
                                     aria-label={`Delete ${card.title}`}
-                                    className="text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                                    className="text-muted-foreground hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 dark:hover:text-rose-300"
                                     onClick={() => deleteCard(card.id)}
                                     onPointerDown={(event) => event.stopPropagation()}
                                     size="icon"
@@ -658,7 +658,7 @@ export default function ProjectBoard() {
                                 </div>
 
                                 {card.description && (
-                                  <p className="mb-3 text-sm leading-5 text-slate-600">{card.description}</p>
+                                  <p className="mb-3 text-sm leading-5 text-muted-foreground">{card.description}</p>
                                 )}
 
                                 <div className="flex flex-wrap gap-1.5">
@@ -1003,7 +1003,7 @@ function AuthPanel({
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 text-slate-950">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 text-foreground">
       <div className="w-full max-w-sm">
         <Card className="shadow-sm">
           <CardHeader className="gap-2 p-6">
@@ -1024,20 +1024,20 @@ function AuthPanel({
           <CardContent className="p-6 pt-0">
 
         {isExistingAccount && (
-          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-200">
             <div className="flex gap-2">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
               <div className="min-w-0">
-                <p className="font-semibold text-amber-950">Account already exists</p>
-                <p className="mt-1 text-amber-900">
-                  An account with <span className="font-medium text-amber-950">{accountExistsEmail}</span>{" "}
+                <p className="font-semibold text-amber-950 dark:text-amber-100">Account already exists</p>
+                <p className="mt-1 text-amber-900 dark:text-amber-200">
+                  An account with <span className="font-medium text-amber-950 dark:text-amber-100">{accountExistsEmail}</span>{" "}
                   already exists. Sign in with this email instead.
                 </p>
               </div>
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <Button
-                className="border-amber-300 bg-white text-amber-950 hover:bg-amber-100"
+                className="border-amber-300 bg-card text-amber-950 hover:bg-amber-100 dark:border-amber-500/40 dark:text-amber-100 dark:hover:bg-amber-900/30"
                 onClick={() => {
                   setMode("login");
                   onAuthModeChange("login");
@@ -1050,7 +1050,7 @@ function AuthPanel({
                 Sign in instead
               </Button>
               <Button
-                className="text-amber-950 hover:bg-amber-100"
+                className="text-amber-950 hover:bg-amber-100 dark:text-amber-100 dark:hover:bg-amber-900/30"
                 onClick={() => {
                   updateAuthForm({ ...form, email: "" });
                   switchAuthMode("signup");
@@ -1066,12 +1066,12 @@ function AuthPanel({
 
         {isAwaitingConfirmation ? (
           <div className="space-y-3">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
               Confirmation email sent to{" "}
-              <span className="font-medium text-slate-900">{pendingEmail || form.email}</span>
+              <span className="font-medium text-foreground">{pendingEmail || form.email}</span>
             </div>
 
-            <div className="rounded-lg border border-teal-100 bg-teal-50 px-3 py-3 text-sm text-teal-900">
+            <div className="rounded-lg border border-teal-100 bg-teal-50 px-3 py-3 text-sm text-teal-900 dark:border-teal-500/30 dark:bg-teal-950/30 dark:text-teal-200">
               Open the confirmation link from Supabase to activate your account. Once confirmed,
               you can return here and sign in with your email and password.
             </div>
@@ -1188,7 +1188,7 @@ function AuthPanel({
                 <Label htmlFor="password">Password</Label>
                 {mode === "login" && (
                   <button
-                    className="text-sm font-medium text-teal-700 hover:text-teal-900"
+                    className="text-sm font-medium text-teal-700 hover:text-teal-900 dark:text-teal-400 dark:hover:text-teal-300"
                     onClick={() => switchAuthMode("forgot-password")}
                     type="button"
                   >
@@ -1218,14 +1218,14 @@ function AuthPanel({
 
         {!isAwaitingConfirmation && !isUpdatingPassword && !isRequestingReset && (
           <>
-            <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
-              <span className="h-px flex-1 bg-slate-200" />
+            <div className="my-5 flex items-center gap-3 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
               or
-              <span className="h-px flex-1 bg-slate-200" />
+              <span className="h-px flex-1 bg-border" />
             </div>
 
             <Button
-              className="w-full border border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+              className="w-full border border-border bg-card text-foreground hover:bg-muted"
               disabled={!isSupabaseConfigured}
               onClick={handleGoogleSignIn}
               type="button"
@@ -1235,10 +1235,10 @@ function AuthPanel({
               Continue with Google
             </Button>
 
-            <p className="mt-5 border-t border-slate-200 pt-4 text-center text-sm text-slate-600">
+            <p className="mt-5 border-t border-border pt-4 text-center text-sm text-muted-foreground">
               {mode === "signup" ? "Already have an account?" : "Don't have an account?"}{" "}
               <button
-                className="font-medium text-slate-950 underline-offset-4 hover:underline"
+                className="font-medium text-foreground underline-offset-4 hover:underline"
                 onClick={() => switchAuthMode(mode === "signup" ? "login" : "signup")}
                 type="button"
               >
@@ -1253,10 +1253,10 @@ function AuthPanel({
             className={cn(
               "mt-4 rounded-md border px-3 py-2 text-sm",
               messageTone === "error"
-                ? "border-rose-200 bg-rose-50 text-rose-900"
+                ? "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-200"
                 : messageTone === "success"
-                  ? "border-teal-200 bg-teal-50 text-teal-900"
-                  : "border-amber-200 bg-amber-50 text-amber-900"
+                  ? "border-teal-200 bg-teal-50 text-teal-900 dark:border-teal-500/30 dark:bg-teal-950/30 dark:text-teal-200"
+                  : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-200"
             )}
           >
             {message}
@@ -1264,7 +1264,7 @@ function AuthPanel({
         )}
 
         {!isSupabaseConfigured && (
-          <p className="mt-4 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+          <p className="mt-4 rounded-md border border-border bg-muted px-3 py-2 text-sm text-muted-foreground">
             Configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to enable auth.
           </p>
         )}
@@ -1330,17 +1330,17 @@ function StatusPicker({
 
 function PasswordStrengthMeter({ strength }: { strength: PasswordStrength }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+    <div className="rounded-lg border border-border bg-muted p-3">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-slate-700">Password strength</p>
-        <p className="text-sm text-slate-500">{strength.label}</p>
+        <p className="text-sm font-medium text-foreground">Password strength</p>
+        <p className="text-sm text-muted-foreground">{strength.label}</p>
       </div>
       <div className="mb-3 grid grid-cols-5 gap-1">
         {Array.from({ length: 5 }).map((_, index) => (
           <span
             className={cn(
               "h-1.5 rounded-full",
-              index < strength.score ? "bg-teal-600" : "bg-slate-200"
+              index < strength.score ? "bg-teal-600" : "bg-border"
             )}
             key={index}
           />
@@ -1348,8 +1348,8 @@ function PasswordStrengthMeter({ strength }: { strength: PasswordStrength }) {
       </div>
       <div className="grid gap-1.5">
         {strength.checks.map((check) => (
-          <div className="flex items-center gap-2 text-xs text-slate-600" key={check.label}>
-            <Check className={cn("h-3.5 w-3.5", check.met ? "text-teal-700" : "text-slate-300")} />
+          <div className="flex items-center gap-2 text-xs text-muted-foreground" key={check.label}>
+            <Check className={cn("h-3.5 w-3.5", check.met ? "text-teal-700 dark:text-teal-400" : "text-muted-foreground/40")} />
             {check.label}
           </div>
         ))}

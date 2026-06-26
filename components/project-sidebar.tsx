@@ -125,7 +125,7 @@ export function ProjectSidebar({
                   className="h-12 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                   type="button"
                 >
-                  <span className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold uppercase text-slate-700 group-data-[collapsible=icon]:size-6 group-data-[collapsible=icon]:rounded-md group-data-[collapsible=icon]:text-[10px]">
+                  <span className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent text-xs font-semibold uppercase text-sidebar-accent-foreground group-data-[collapsible=icon]:size-6 group-data-[collapsible=icon]:rounded-md group-data-[collapsible=icon]:text-[10px]">
                     {getUserInitials(userName, user.email)}
                   </span>
                   <span className="grid min-w-0 flex-1 text-left text-sm leading-tight">
@@ -138,7 +138,7 @@ export function ProjectSidebar({
               <DropdownMenuContent align="end" className="w-56 rounded-lg" side="right" sideOffset={8}>
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-semibold uppercase text-slate-700">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold uppercase text-foreground">
                       {getUserInitials(userName, user.email)}
                     </span>
                     <span className="grid min-w-0 flex-1 text-left text-sm leading-tight">
